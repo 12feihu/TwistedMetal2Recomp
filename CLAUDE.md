@@ -79,7 +79,10 @@ build-dev\TwistedMetal2_Recompiled.exe --no-launcher --debug-port 4370 ^
    cp1252, so a UTF-8 em dash decodes to `â€"` — and that trailing `"` is
    U+201D, which PowerShell treats as a *string delimiter*. Any framework
    `.ps1` with an em dash fails to parse. Fix: add a UTF-8 BOM to the script.
-   (Already done to `psxrecomp-upstream/tools/new_project_layout/setup_project.ps1`.)
+   Hit during scaffolding via
+   `psxrecomp/tools/new_project_layout/setup_project.ps1`; that script has
+   already done its job here, but the same trap applies to any other
+   framework `.ps1` we reach for.
 
 3. **Python 3.10** — the framework's `sync_symbols.py` wants 3.11+ `tomllib`.
    `pip install tomli` satisfies it (done).
