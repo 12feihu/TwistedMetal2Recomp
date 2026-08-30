@@ -4,6 +4,14 @@
  */
 #pragma once
 
+/* guessed: jal at 0x8011E4F4; NOP-ing that call gives 'Drive Through Walls' */
+#define PSX_FN_CollisionWallResponse 0x800E3800u
+#define func_800E3800 CollisionWallResponse  /* alias */
+
+/* guessed: jal at 0x8012CB50 (SingleTrac logo) and 0x8012DDA4 (intro); NOP-ing either skips that movie */
+#define PSX_FN_PlayFmv 0x8012B898u
+#define func_8012B898 PlayFmv  /* alias */
+
 /* guessed: SYSTEM.CNF / EXE entry PC (probe seed) */
 #define PSX_FN_BootEntry 0x8013878Cu
 #define func_8013878C BootEntry  /* alias */

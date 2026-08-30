@@ -16,3 +16,22 @@ note = "SYSTEM.CNF / EXE entry PC (probe seed)"
 #   +0 status (0xFF = no pad)  +1 pad id  +2..3 buttons  +4..7 stick axes
 # See docs/DISC_NOTES.md "Controller: digital pad only".
 #   pad1_buffer = 0x801B2D80
+
+# --- discovered via GameShark code archaeology (docs/RAM_MAP.md) -----------
+# Both are named by cheats that NOP a `jal`, so the callee address is exact
+# even though the behaviour label is inferred. Keep status = "guessed" until
+# the behaviour is confirmed at runtime.
+
+[[func]]
+pc = 0x800E3800
+name = "CollisionWallResponse"
+emit = false
+status = "guessed"
+note = "jal at 0x8011E4F4; NOP-ing that call gives 'Drive Through Walls'"
+
+[[func]]
+pc = 0x8012B898
+name = "PlayFmv"
+emit = false
+status = "guessed"
+note = "jal at 0x8012CB50 (SingleTrac logo) and 0x8012DDA4 (intro); NOP-ing either skips that movie"
