@@ -21,6 +21,12 @@ void tm2_cheat_set_enabled(int index, int enabled);
 void tm2_cheat_clear_all(void);
 int  tm2_cheat_active_count(void);
 
+/* Modifier cheats: the published GameShark value is a placeholder,
+ * so the UI offers a picker and this is what it drives. */
+int32_t     tm2_cheat_param(int index);
+void        tm2_cheat_set_param(int index, int32_t value);
+const char *tm2_cheat_choice(int index, int choice);
+
 /* Control server, driven from the plugin's VBlank callback. Never blocks. */
 void tm2_ipc_start(void);
 void tm2_ipc_poll(void);

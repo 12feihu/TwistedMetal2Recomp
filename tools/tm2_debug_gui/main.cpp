@@ -52,6 +52,8 @@
 
 namespace {
 
+enum { PARAM_NONE = 0, PARAM_RANGE = 1, PARAM_CHOICE = 2 };
+
 struct Cheat {
     int         index = 0;
     bool        enabled = false;
@@ -59,6 +61,15 @@ struct Cheat {
     std::string category;
     std::string name;
     std::string id;
+    // Modifier cheats carry a placeholder value in the published GameShark
+    // code, so they get a picker rather than a bare checkbox.
+    int         param_kind = PARAM_NONE;
+    long        value = 0;
+    long        vmin = 0;
+    long        vmax = 0;
+    std::string param_label;
+    std::vector<std::string> choices;   // fetched lazily, only when expanded
+    bool        choices_fetched = false;
 };
 
 int g_port = 4371;
@@ -163,6 +174,13 @@ std::vector<Cheat> fetch_list(bool *ok)
         c.category = f[3];
         c.name = f[4];
         c.id = f[5];
+        if (f.size() >= 11) {
+            c.param_kind = atoi(f[6].c_str());
+            c.value = atol(f[7].c_str());
+            c.vmin = atol(f[8].c_str());
+            c.vmax = atol(f[9].c_str());
+            c.param_label = f[10];
+        }
         list.push_back(std::move(c));
     }
     return list;
@@ -308,7 +326,18 @@ int main(int argc, char **argv)
             bool ok = false;
             std::vector<Cheat> fresh = fetch_list(&ok);
             connected = ok && !fresh.empty();
-            if (connected) cheats = std::move(fresh);
+            if (connected) {
+                // Merge rather than replace: choice labels are fetched lazily
+                // with a separate request, and a wholesale swap would discard
+                // them every refresh and re-request forever.
+                for (size_t i = 0; i < fresh.size(); i++) {
+                    if (i < cheats.size() && cheats[i].id == fresh[i].id) {
+                        fresh[i].choices = std::move(cheats[i].choices);
+                        fresh[i].choices_fetched = cheats[i].choices_fetched;
+                    }
+                }
+                cheats = std::move(fresh);
+            }
         }
 
         ImGui_ImplOpenGL3_NewFrame();
@@ -399,6 +428,58 @@ int main(int argc, char **argv)
                           ? "Patches an instruction in the executable.\n"
                             "Restored when switched off."
                           : "Runtime state. Safe at any time.");
+                }
+                // Modifier cheats get a picker on the following line. The
+                // published GameShark value for these is a placeholder, so a
+                // checkbox alone would always write the same useless number.
+                if (c.param_kind != PARAM_NONE) {
+                    ImGui::Indent(24.0f);
+                    ImGui::SetNextItemWidth(-60.0f);
+                    if (c.param_kind == PARAM_CHOICE) {
+                        if (!c.choices_fetched) {
+                            std::string r;
+                            if (request("CHOICES " + std::to_string(c.index), &r)) {
+                                size_t nl = r.find('\n');
+                                if (nl != std::string::npos) {
+                                    size_t p = nl + 1;
+                                    while (p < r.size()) {
+                                        size_t e = r.find('\n', p);
+                                        if (e == std::string::npos) e = r.size();
+                                        if (e > p) c.choices.push_back(r.substr(p, e - p));
+                                        p = e + 1;
+                                    }
+                                }
+                            }
+                            c.choices_fetched = true;
+                        }
+                        int sel = (int)c.value;
+                        if (sel < 0 || sel >= (int)c.choices.size()) sel = 0;
+                        const char *preview = c.choices.empty()
+                                            ? "?" : c.choices[sel].c_str();
+                        if (ImGui::BeginCombo(c.param_label.c_str(), preview)) {
+                            for (int k = 0; k < (int)c.choices.size(); k++) {
+                                bool is_sel = (k == sel);
+                                if (ImGui::Selectable(c.choices[k].c_str(), is_sel)) {
+                                    std::string r;
+                                    if (request("SETVAL " + std::to_string(c.index) +
+                                                " " + std::to_string(k), &r))
+                                        c.value = k;
+                                }
+                                if (is_sel) ImGui::SetItemDefaultFocus();
+                            }
+                            ImGui::EndCombo();
+                        }
+                    } else {
+                        int v = (int)c.value;
+                        if (ImGui::DragInt(c.param_label.c_str(), &v, 1.0f,
+                                           (int)c.vmin, (int)c.vmax)) {
+                            std::string r;
+                            if (request("SETVAL " + std::to_string(c.index) +
+                                        " " + std::to_string(v), &r))
+                                c.value = v;
+                        }
+                    }
+                    ImGui::Unindent(24.0f);
                 }
                 ImGui::PopID();
                 }

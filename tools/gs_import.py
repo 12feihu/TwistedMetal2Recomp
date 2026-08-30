@@ -151,6 +151,39 @@ def parse(path):
     return cheats
 
 
+def load_params(path):
+    """Read the hand-maintained value-selector declarations.
+
+    Returns {cheat_id: {...}}. Uses tomli/tomllib so the file stays ordinary
+    TOML rather than something bespoke.
+    """
+    if not path or not os.path.isfile(path):
+        return {}
+    try:
+        import tomllib as toml_mod
+        data = toml_mod.loads(open(path, "rb").read().decode("utf-8"))
+    except ImportError:
+        import tomli as toml_mod
+        data = toml_mod.loads(open(path, "rb").read().decode("utf-8"))
+    out = {}
+    for entry in data.get("param", []):
+        spec = {
+            "label": entry.get("label", "Value"),
+            "type": entry.get("type", "range"),
+            "min": int(entry.get("min", 0)),
+            "max": int(entry.get("max", 65535)),
+            "base": int(entry.get("base", 0)),
+            "default": int(entry.get("default", 0)),
+            "choices": list(entry.get("choices", [])),
+        }
+        if spec["type"] == "choice":
+            spec["min"] = 0
+            spec["max"] = max(0, len(spec["choices"]) - 1)
+        for cid in entry.get("cheats", []):
+            out[cid] = spec
+    return out
+
+
 C_KIND = {"write8": "TM2_OP_WRITE8", "write16": "TM2_OP_WRITE16",
           "if_eq16": "TM2_OP_IF_EQ16"}
 C_REGION = {"low": "TM2_REGION_LOW", "image": "TM2_REGION_IMAGE",
@@ -161,7 +194,7 @@ def c_string(s):
     return '"' + s.replace("\\", "\\\\").replace('"', '\\"') + '"'
 
 
-def emit_c(path, cheats, source_name):
+def emit_c(path, cheats, source_name, params):
     """Write the cheat table as a compiled-in C header.
 
     The plugin has no TOML parser and none is worth linking for a table that
@@ -198,6 +231,8 @@ def emit_c(path, cheats, source_name):
                 "     * an instruction itself. Zero for non-image ops. */\n"
                 "    uint32_t orig_word;\n"
                 "} Tm2CheatOp;\n\n")
+        f.write("enum { TM2_PARAM_NONE = 0, TM2_PARAM_RANGE = 1,"
+                " TM2_PARAM_CHOICE = 2 };\n\n")
         f.write("typedef struct {\n"
                 "    const char *id;\n"
                 "    const char *name;\n"
@@ -205,6 +240,17 @@ def emit_c(path, cheats, source_name):
                 "    uint16_t    first_op;\n"
                 "    uint8_t     op_count;\n"
                 "    uint8_t     region;   /* widest region the cheat touches */\n"
+                "    /* Modifier cheats carry a placeholder value in the published\n"
+                "     * code; these describe the value space so the UI can offer a\n"
+                "     * picker. TM2_PARAM_NONE means a plain on/off toggle. */\n"
+                "    uint8_t     param_kind;\n"
+                "    const char *param_label;\n"
+                "    int32_t     param_min;\n"
+                "    int32_t     param_max;\n"
+                "    int32_t     param_base;    /* added before the write */\n"
+                "    int32_t     param_default;\n"
+                "    uint16_t    choice_first;  /* index into tm2_choice_names */\n"
+                "    uint16_t    choice_count;\n"
                 "} Tm2Cheat;\n\n")
 
         f.write("static const Tm2CheatOp tm2_cheat_ops[] = {\n")
@@ -214,15 +260,48 @@ def emit_c(path, cheats, source_name):
                        C_REGION[op["region"]], op.get("orig_word", 0)))
         f.write("};\n\n")
 
+        # Choice label pool, shared by every cheat that uses the same list.
+        choice_names = []
+        choice_slot = {}
+        for c in cheats:
+            spec = params.get(c["id"])
+            if not spec or spec["type"] != "choice":
+                continue
+            key = tuple(spec["choices"])
+            if key not in choice_slot:
+                choice_slot[key] = len(choice_names)
+                choice_names.extend(spec["choices"])
+
+        f.write("static const char *const tm2_choice_names[] = {\n")
+        for n in choice_names:
+            f.write("    %s,\n" % c_string(n))
+        if not choice_names:
+            f.write("    0,\n")
+        f.write("};\n\n")
+
         f.write("static const Tm2Cheat tm2_cheats[] = {\n")
         for (name, cat, first, count), c in zip(rows, cheats):
             # widest region: image beats bss beats low, for display only
             regs = set(o["region"] for o in c["ops"])
             widest = "image" if "image" in regs else (
                      "low" if "low" in regs else "bss")
-            f.write("    { %s, %s, %s, %d, %d, %s },\n"
+            spec = params.get(c["id"])
+            if not spec:
+                pk, lbl, pmin, pmax, pbase, pdef, cf, cc = (
+                    "TM2_PARAM_NONE", "0", 0, 0, 0, 0, 0, 0)
+            elif spec["type"] == "choice":
+                cf = choice_slot[tuple(spec["choices"])]
+                pk, lbl = "TM2_PARAM_CHOICE", c_string(spec["label"])
+                pmin, pmax = 0, max(0, len(spec["choices"]) - 1)
+                pbase, pdef, cc = spec["base"], spec["default"], len(spec["choices"])
+            else:
+                pk, lbl = "TM2_PARAM_RANGE", c_string(spec["label"])
+                pmin, pmax = spec["min"], spec["max"]
+                pbase, pdef, cf, cc = spec["base"], spec["default"], 0, 0
+            f.write("    { %s, %s, %s, %d, %d, %s, %s, %s, %d, %d, %d, %d, %d, %d },\n"
                     % (c_string(c["id"]), c_string(name), c_string(cat),
-                       first, count, C_REGION[widest]))
+                       first, count, C_REGION[widest],
+                       pk, lbl, pmin, pmax, pbase, pdef, cf, cc))
         f.write("};\n\n")
         f.write("#define TM2_CHEAT_COUNT %d\n" % len(rows))
         f.write("#define TM2_CHEAT_OP_COUNT %d\n" % len(ops))
@@ -236,10 +315,13 @@ def main():
     ap.add_argument("-o", "--out", required=True, help="output .toml")
     ap.add_argument("--emit-c", metavar="HEADER",
                     help="also write a compiled-in C table for src/mods/")
+    ap.add_argument("--params", default="mods/tm2-debug/params.toml",
+                    help="value-selector declarations for modifier cheats")
     ap.add_argument("--exe", default="disc/SCUS_943.06",
                     help="boot EXE, for validating image-region targets")
     args = ap.parse_args()
 
+    params = load_params(args.params)
     img = None
     if os.path.isfile(args.exe):
         img = open(args.exe, "rb").read()[2048:2048 + TEXT_SIZE]
@@ -347,7 +429,7 @@ def main():
             f.write("\n")
 
     if args.emit_c:
-        emit_c(args.emit_c, out, os.path.basename(args.input))
+        emit_c(args.emit_c, out, os.path.basename(args.input), params)
         print("wrote %s" % args.emit_c)
 
     print("wrote %s" % args.out)

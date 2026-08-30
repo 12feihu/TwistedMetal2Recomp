@@ -140,6 +140,44 @@ VBlank callback -- a single blocking `accept`, `recv` or `send` there would
 stall the game, so partial sends are buffered per client and retried on later
 frames.
 
+## Modifier cheats and value pickers
+
+A GameShark "modifier" carries a placeholder value -- the published code is
+`P1 Car Modifier 30164764 0000`, and you are expected to substitute the car
+you want. A checkbox cannot express that, so `mods/tm2-debug/params.toml`
+declares the value space for those cheats and the GUI renders a combo box or
+a number drag instead.
+
+That file is hand-maintained on purpose. Guessing which cheats are
+parameterised from their names would be wrong often enough to matter, so
+anything not listed there stays a plain toggle.
+
+```toml
+[[param]]
+cheats = ["p1-car-modifier", "p2-car-modifier"]
+label = "Car"
+type = "choice"          # or "range" with min/max
+default = 0
+choices = ["0 Hammerhead", "1 Outlaw 2", ...]
+```
+
+`base` shifts a list that does not start at zero -- the level tables in this
+game are 1-based. The selection replaces the value on every write op in that
+cheat; guard ops (`if_eq16`) keep their own value.
+
+Two lists are filled in from disassembly rather than from the cheat list, so
+they are exact: the 15 cars (`docs/CARS.md`) and the 12 levels. Everything
+else is an open 0-255 or 0-65535 range until real values are supplied.
+
+Protocol additions:
+
+```
+SETVAL <index> <v>   OK <clamped>
+CHOICES <index>      OK <n>, then n label lines
+```
+
+`LIST` rows gained five columns: `param_kind`, current value, min, max, label.
+
 ## Two things specific to a recompilation
 
 **Code patches cannot just poke RAM.** The game is statically recompiled, so

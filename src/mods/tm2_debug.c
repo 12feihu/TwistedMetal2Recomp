@@ -57,6 +57,9 @@ static uint8_t s_enabled[(TM2_CHEAT_COUNT + 7) / 8];
 /* Which cheats currently have their patches in guest memory, so a
  * disable can put code patches back exactly once. */
 static uint8_t s_applied[(TM2_CHEAT_COUNT + 7) / 8];
+/* Modifier cheats substitute this for the placeholder value the
+ * published GameShark code carries. */
+static int32_t s_param[TM2_CHEAT_COUNT];
 static int     s_menu_open;
 static int     s_cursor;
 static int     s_active_count;
@@ -93,6 +96,31 @@ int tm2_cheat_is_enabled(int index)
 }
 
 int tm2_cheat_active_count(void) { return s_active_count; }
+
+int32_t tm2_cheat_param(int index)
+{
+    if (index < 0 || index >= TM2_CHEAT_COUNT) return 0;
+    return s_param[index];
+}
+
+void tm2_cheat_set_param(int index, int32_t value)
+{
+    if (index < 0 || index >= TM2_CHEAT_COUNT) return;
+    const Tm2Cheat *c = &tm2_cheats[index];
+    if (c->param_kind == TM2_PARAM_NONE) return;
+    if (value < c->param_min) value = c->param_min;
+    if (value > c->param_max) value = c->param_max;
+    s_param[index] = value;
+}
+
+const char *tm2_cheat_choice(int index, int choice)
+{
+    if (index < 0 || index >= TM2_CHEAT_COUNT) return "";
+    const Tm2Cheat *c = &tm2_cheats[index];
+    if (c->param_kind != TM2_PARAM_CHOICE) return "";
+    if (choice < 0 || choice >= (int)c->choice_count) return "";
+    return tm2_choice_names[c->choice_first + choice];
+}
 
 static void recount_active(void);
 static void redraw(void);
@@ -161,8 +189,12 @@ static void revert_cheat(const Tm2Cheat *c)
     }
 }
 
-static void apply_cheat(const Tm2Cheat *c)
+static void apply_cheat(const Tm2Cheat *c, int index)
 {
+    /* A modifier's published value is a placeholder; the picker's
+     * selection replaces it on every write op. Guards keep theirs. */
+    int has_param = (c->param_kind != TM2_PARAM_NONE);
+    uint16_t pval = (uint16_t)(s_param[index] + c->param_base);
     uint16_t i = 0;
     while (i < c->op_count) {
         const Tm2CheatOp *op = &tm2_cheat_ops[c->first_op + i];
@@ -175,10 +207,16 @@ static void apply_cheat(const Tm2Cheat *c)
             i += 1;
             continue;
         }
-        if (op->kind == TM2_OP_WRITE8)
-            psx_mod_write_byte(op->addr, (uint8_t)(op->value & 0xFF));
-        else
+        if (op->kind == TM2_OP_WRITE8) {
+            uint16_t v = has_param ? pval : op->value;
+            psx_mod_write_byte(op->addr, (uint8_t)(v & 0xFF));
+        } else if (has_param) {
+            Tm2CheatOp tmp = *op;
+            tmp.value = pval;
+            write_half(&tmp);
+        } else {
             write_half(op);
+        }
         i += 1;
     }
 }
@@ -303,7 +341,7 @@ static void tm2_debug_vblank(void)
         int on = cheat_enabled(i);
         int was = (s_applied[i >> 3] >> (i & 7)) & 1;
         if (on) {
-            apply_cheat(&tm2_cheats[i]);
+            apply_cheat(&tm2_cheats[i], i);
             s_applied[i >> 3] |= (uint8_t)(1u << (i & 7));
         } else if (was) {
             revert_cheat(&tm2_cheats[i]);
@@ -360,6 +398,8 @@ static void tm2_debug_activate(void)
 {
     memset(s_enabled, 0, sizeof(s_enabled));
     memset(s_applied, 0, sizeof(s_applied));
+    for (int i = 0; i < TM2_CHEAT_COUNT; i++)
+        s_param[i] = tm2_cheats[i].param_default;
     memset(s_key_prev, 0, sizeof(s_key_prev));
     s_menu_open = 0;
     s_cursor = 0;

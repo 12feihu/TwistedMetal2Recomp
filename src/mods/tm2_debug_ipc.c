@@ -18,6 +18,8 @@
  *   LIST                 OK <count>, then <count> tab-separated rows:
  *                        <index> <enabled> <region> <category> <name> <id>
  *   SET <index> <0|1>    OK
+ *   SETVAL <index> <v>   OK <clamped>   modifier value picker
+ *   CHOICES <index>      OK <n>, then n label lines
  *   TOGGLE <index>       OK <enabled>
  *   CLEAR                OK
  *   STATUS               OK <active> <total>
@@ -174,9 +176,14 @@ static void handle_line(Tm2Client *c, char *line)
             const Tm2Cheat *ch = tm2_cheat_at(i);
             const char *reg = ch->region == TM2_REGION_IMAGE ? "EXE"
                             : ch->region == TM2_REGION_LOW   ? "LVL" : "RAM";
-            client_printf(c, "%d\t%d\t%s\t%s\t%s\t%s\n", i,
-                          tm2_cheat_is_enabled(i), reg, ch->category,
-                          ch->name, ch->id);
+            client_printf(c,
+                          "%d\t%d\t%s\t%s\t%s\t%s\t%d\t%ld\t%ld\t%ld\t%s\n",
+                          i, tm2_cheat_is_enabled(i), reg, ch->category,
+                          ch->name, ch->id,
+                          (int)ch->param_kind,
+                          (long)tm2_cheat_param(i),
+                          (long)ch->param_min, (long)ch->param_max,
+                          ch->param_label ? ch->param_label : "");
         }
         return;
     }
@@ -189,6 +196,33 @@ static void handle_line(Tm2Client *c, char *line)
         }
         tm2_cheat_set_enabled(idx, on ? 1 : 0);
         client_printf(c, "OK\n");
+        return;
+    }
+    if (strncmp(line, "SETVAL ", 7) == 0) {
+        int idx = -1;
+        long v = 0;
+        if (sscanf(line + 7, "%d %ld", &idx, &v) != 2 ||
+            idx < 0 || idx >= tm2_cheat_count()) {
+            client_printf(c, "ERR bad SETVAL\n");
+            return;
+        }
+        tm2_cheat_set_param(idx, (int32_t)v);
+        client_printf(c, "OK %ld\n", (long)tm2_cheat_param(idx));
+        return;
+    }
+    if (strncmp(line, "CHOICES ", 8) == 0) {
+        int idx = -1;
+        if (sscanf(line + 8, "%d", &idx) != 1 ||
+            idx < 0 || idx >= tm2_cheat_count()) {
+            client_printf(c, "ERR bad CHOICES\n");
+            return;
+        }
+        const Tm2Cheat *ch = tm2_cheat_at(idx);
+        int n = (ch->param_kind == TM2_PARAM_CHOICE)
+              ? (int)ch->choice_count : 0;
+        client_printf(c, "OK %d\n", n);
+        for (int i = 0; i < n; i++)
+            client_printf(c, "%s\n", tm2_cheat_choice(idx, i));
         return;
     }
     if (strncmp(line, "TOGGLE ", 7) == 0) {

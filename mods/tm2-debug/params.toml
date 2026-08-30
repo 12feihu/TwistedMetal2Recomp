@@ -1,0 +1,143 @@
+# Value selectors for "modifier" cheats.
+#
+# A GameShark modifier code carries a placeholder value -- the published code
+# is "P1 Car Modifier 30164764 0000" and you are expected to substitute the
+# car you want. A checkbox cannot express that, so these entries declare the
+# value space and the debug menu renders a picker instead.
+#
+# Hand-maintained on purpose: guessing which cheats are parameterised from
+# their names would be wrong often enough to matter. Anything not listed here
+# stays a plain on/off toggle.
+#
+#   type = "choice"   value is an index into `choices`
+#   type = "range"    value is a number in [min, max]
+#
+# `base` shifts a choice list that does not start at zero (the level tables in
+# this game are 1-based). `default` is what the picker starts on.
+
+# --- cars ------------------------------------------------------------------
+# Order recovered from func_8012ADA0 / func_8012AEC4; see docs/CARS.md.
+# Index 14 (Dark Tooth) is included deliberately: it is the only way to select
+# it, since the game ships no select-screen entry for it.
+
+[[param]]
+cheats = ["p1-car-modifier", "p2-car-modifier",
+          "computer-1-car-modifier", "computer-2-car-modifier",
+          "computer-3-car-modifier", "computer-4-car-modifier",
+          "computer-5-car-modifier", "computer-6-car-modifier",
+          "computer-7-car-modifier", "computer-8-car-modifier",
+          "computer-9-car-modifier"]
+label = "Car"
+type = "choice"
+default = 0
+choices = [
+  "0 Hammerhead", "1 Outlaw 2", "2 Warthog", "3 Mr. Grimm", "4 Grasshopper",
+  "5 Thumper", "6 Spectre", "7 Roadkill", "8 Twister", "9 Axel",
+  "10 Mr. Slam", "11 Shadow", "12 Sweet Tooth", "13 Minion",
+  "14 Dark Tooth (boss)",
+]
+
+# --- levels ----------------------------------------------------------------
+# Recovered from the level jump tables at 0x800CFB58 (asset code) and
+# 0x800CFB88 (display name). One-based; slot 9 has a display name but no asset
+# code, so it is almost certainly not loadable.
+
+[[param]]
+cheats = ["always-play-level", "start-on-level"]
+label = "Level"
+type = "choice"
+base = 1
+default = 0
+choices = [
+  "1 Los Angeles : Quake Zone Rumble",
+  "2 Moscow : Suicide Slide",
+  "3 Paris : Monumental Disaster",
+  "4 Amazonia : Fire Walk",
+  "5 New York : The Big Leap",
+  "6 Antarctica : The Drop Zone",
+  "7 Holland : Field of Screams",
+  "8 Hong Kong : Hong Kong Krunch",
+  "9 (It's a Secret -- no asset code)",
+  "10 Florida : Suicide Swamp",
+  "11 Los Angeles : Cyburbia",
+  "12 Los Angeles : Roof Tops",
+]
+
+# --- from the cheat's own name ---------------------------------------------
+
+[[param]]
+cheats = ["number-of-human-players-in-the-battle-00-02"]
+label = "Human players"
+type = "range"
+min = 0
+max = 2
+default = 1
+
+# --- values not yet known --------------------------------------------------
+# Open ranges until the real value tables are supplied. They are usable now --
+# you can dial a number and watch what happens -- but the numbers are not
+# labelled, so treat anything you find here as unverified.
+
+[[param]]
+cheats = ["difficulty-modifier"]
+label = "Difficulty"
+type = "range"
+min = 0
+max = 255
+default = 0
+
+[[param]]
+cheats = ["map-modifier"]
+label = "Map"
+type = "range"
+min = 0
+max = 255
+default = 0
+
+[[param]]
+cheats = ["background-select"]
+label = "Background"
+type = "range"
+min = 0
+max = 255
+default = 8
+
+[[param]]
+cheats = ["p1-control-modifier", "p2-control-modifier"]
+label = "Control scheme"
+type = "range"
+min = 0
+max = 255
+default = 0
+
+[[param]]
+cheats = ["camera-modifier-p1"]
+label = "Camera"
+type = "range"
+min = 0
+max = 255
+default = 1
+
+[[param]]
+cheats = ["makes-your-special-weapon"]
+label = "Special weapon"
+type = "range"
+min = 0
+max = 65535
+default = 0
+
+[[param]]
+cheats = ["strange-and-cool-effects-modifier"]
+label = "Effect"
+type = "range"
+min = 0
+max = 65535
+default = 0
+
+[[param]]
+cheats = ["speed-is-always-p1", "speed-is-always-p2"]
+label = "Speed"
+type = "range"
+min = 0
+max = 65535
+default = 0
