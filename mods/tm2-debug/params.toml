@@ -31,16 +31,26 @@ label = "Car"
 type = "choice"
 default = 0
 choices = [
-  "0 Hammerhead", "1 Outlaw 2", "2 Warthog", "3 Mr. Grimm", "4 Grasshopper",
-  "5 Thumper", "6 Spectre", "7 Roadkill", "8 Twister", "9 Axel",
-  "10 Mr. Slam", "11 Shadow", "12 Sweet Tooth", "13 Minion",
-  "14 Dark Tooth (boss)",
+  "00 Hammerhead", "01 Outlaw 2", "02 Warthog", "03 Mr. Grimm",
+  "04 Grasshopper", "05 Thumper", "06 Spectre", "07 Road Kill",
+  "08 Twister", "09 Axel",
+  "0A Mr. Slam", "0B Shadow", "0C Sweet Tooth", "0D Minion",
+  "0E Dark Tooth (boss -- glitches periodically)",
 ]
 
 # --- levels ----------------------------------------------------------------
 # Recovered from the level jump tables at 0x800CFB58 (asset code) and
-# 0x800CFB88 (display name). One-based; slot 9 has a display name but no asset
-# code, so it is almost certainly not loadable.
+# 0x800CFB88 (display name), then corrected against what actually loads.
+# One-based. See docs/LEVELS.md.
+#
+# Two slots do not match their names:
+#   09  the display name is "It's a Secret" but the asset-code entry points at
+#       the default handler, so there is no level to load -- it glitches.
+#   0A  the display name is "Florida : Suicide Swamp" and the asset prefix is
+#       SWAMP, but SWAMP.TMS/DMD actually contain a Jet Moto course. The swamp
+#       level was never built; the slot carries an easter egg from SingleTrac's
+#       other game instead. Labelled here by what loads, not by what the code
+#       calls it.
 
 [[param]]
 cheats = ["always-play-level", "start-on-level"]
@@ -49,18 +59,18 @@ type = "choice"
 base = 1
 default = 0
 choices = [
-  "1 Los Angeles : Quake Zone Rumble",
-  "2 Moscow : Suicide Slide",
-  "3 Paris : Monumental Disaster",
-  "4 Amazonia : Fire Walk",
-  "5 New York : The Big Leap",
-  "6 Antarctica : The Drop Zone",
-  "7 Holland : Field of Screams",
-  "8 Hong Kong : Hong Kong Krunch",
-  "9 (It's a Secret -- no asset code)",
-  "10 Florida : Suicide Swamp",
-  "11 Los Angeles : Cyburbia",
-  "12 Los Angeles : Roof Tops",
+  "01 Los Angeles : Quake Zone Rumble",
+  "02 Moscow : Suicide Slide",
+  "03 Paris : Monumental Disaster",
+  "04 Amazonia : Fire Walk",
+  "05 New York : The Big Leap",
+  "06 Antarctica : The Drop Zone",
+  "07 Holland : Field of Screams",
+  "08 Hong Kong : Hong Kong Krunch",
+  "09 (glitches -- no asset code)",
+  "0A Jet Moto course (SWAMP slot)",
+  "0B Los Angeles : Cyburbia",
+  "0C Los Angeles : Roof Tops",
 ]
 
 # --- from the cheat's own name ---------------------------------------------

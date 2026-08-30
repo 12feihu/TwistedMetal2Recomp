@@ -30,6 +30,12 @@ with `sltiu ..., 15` as the bound and a jump table in the data segment
 
 Out-of-range indices return the string `"UNKNOWN CAR"` from both functions.
 
+**Confirmed independently.** This table was derived from disassembly, then
+matched against a separately-held vehicle ID list supplied by the project
+owner: all 15 entries agree, including Dark Tooth at `0E`. Dark Tooth is
+noted there as glitching periodically when forced, which is consistent
+with it having no select-screen entry.
+
 The codes are not mnemonic and several look like leftovers from the first
 game's asset naming — `PV` (Pit Viper) is Grasshopper here, `IR` is Twister,
 `FL` is Mr. Slam, `HS` is Shadow, and `BB` is Dark Tooth. Do not infer a car
