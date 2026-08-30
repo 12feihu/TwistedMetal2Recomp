@@ -22,18 +22,25 @@ Status of the recompilation, and what comes next. Update as things land.
       terrain and walls, car model, skybox, a semi-transparent light beam and
       a health pickup. GPU command traffic climbs steadily while the
       demo runs (~7.4M GP0 writes over a 3 s sample).
+- [x] **Audio works.** The main-menu music that looked missing simply starts
+      when an option is selected — not a bug.
+- [x] **Controller input works.** Root cause was the pad type, not the
+      bindings: the runtime presented a DualShock (id 0x73) and the game's
+      1996 libpad discards it. Pinned to digital via `[controller] lock_mode`
+      in `game.toml` — see `docs/DISC_NOTES.md`.
 
 ## Next — bring-up
 
-1. **Audio.** Nothing checked yet: the `SCREEN\UACORE.VAB` SPU bank, XA `.DA`
-   streams, CDDA tracks 02-12, and FMV audio sync.
-2. **Menus and input.** Drive the shell (`SHELLDB1`/`SHELLDB2`) with
-   `set_input` over the debug server; car select, level select, options.
-3. **Play a real match.** Get past attract into an actual game and check
-   collision, weapons, HUD and split-screen.
+1. **Play a real match.** Menus and input respond; next is an actual game —
+   collision, weapons, HUD, and each of the levels.
+2. **Two players / split-screen.** Untested. Note `settings.toml` carries
+   `multitap = true` while the game has no multitap support; check whether
+   that matters once a second pad is seated.
+3. **Memory card.** Password and save flow.
 4. **Renderer parity.** Compare software vs OpenGL output on the same frames;
    the software rasterizer is the reference look.
-5. **Memory card.** Password and save flow.
+5. **Audio detail.** Broadly working; still worth checking XA/CDDA transitions
+   and FMV sync closely.
 6. **Soak.** Long runs per level hunting divergence and freezes.
 
 ## Then — coverage and accuracy
