@@ -126,7 +126,8 @@ Not JSON: the peer is ours, and a hand-rolled JSON parser in C would have been
 the largest and least reliable part of that file.
 
 ```
-LIST                OK <n>, then n rows: idx 	 on 	 region 	 category 	 name 	 id
+LIST                OK <n>, then n rows, tab-separated:
+                    <index> <enabled> <region> <category> <name> <id>
 SET <index> <0|1>   OK
 TOGGLE <index>      OK <enabled>
 CLEAR               OK
@@ -177,15 +178,22 @@ a restriction.
 
 ## Status
 
-Verified working end to end: the package resolves, the plugin activates, the
-cheat engine patches through the recompiled code path, and the OSD renders.
-Proven with the two FMV-skip cheats, which took the game straight to the title
-screen with `F1  2 cheats active` shown.
+Verified end to end against the running game:
 
-**The key bindings themselves have not been exercised** — they need a real
-keyboard, which automated testing here cannot provide. If F1 does not respond,
-that is the first thing to check, and the likely cause is SDL keyboard focus
-rather than the plugin.
+- the package resolves and the plugin activates;
+- the cheat engine patches through the recompiled code path (the two FMV-skip
+  cheats took the game straight to the title screen, with `F1  2 cheats
+  active` on the OSD);
+- enabling and disabling round-trips an instruction cleanly;
+- the control server answers `LIST` with all 132 entries, and `SET` from a
+  socket reaches guest memory;
+- `tm2-debug-gui --selftest` passes, and a rendered frame was inspected.
+
+**Two things have not been exercised**, both needing a human at the machine:
+the F1 key bindings, and clicking the GUI's checkboxes. The code paths behind
+both are covered by the tests above — the same `SET` the checkbox sends is
+what the selftest drives — but the input plumbing itself is unproven. If F1
+does not respond, suspect SDL keyboard focus before the plugin.
 
 ## Possible upgrades
 
