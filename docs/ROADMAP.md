@@ -13,36 +13,39 @@ Status of the recompilation, and what comes next. Update as things land.
       functions).
 - [x] `build/` (Release) and `build-dev/` (RelWithDebInfo + debug server)
       both compile and link.
-- [x] **First boot runs**: 3,712 frames in ~62 s (≈60 fps), PC inside the
-      game's own text, VBlank IRQs delivering, no fatal.
+- [x] **First boot runs.** 12,477 frames over ~3.5 min at ~60 fps, VBlank
+      IRQs delivering, `fatal: null`, no crash dump.
+- [x] **Boots all the way into 3D.** Verified by screenshot over the TCP
+      debug server: SingleTrac logo FMV (MDEC 24bpp scanout) -> attract
+      loading screen (`LOADING / LOS ANGELES`, TIM art and fonts correct) ->
+      **in-game attract demo rendering the Los Angeles arena** with textured
+      terrain and walls, car model, skybox, a semi-transparent light beam and
+      a health pickup. GPU draw commands climb steadily (~250 draws/frame).
 
 ## Next — bring-up
 
-1. **See the screen.** Drive `build-dev/` over the TCP debug server
-   (`screenshot_hires`, `present_shot`) and confirm what actually renders:
-   Sony/SingleTrac logos → `MOVIES\SLOGO15S.STR` → attract loop → title.
-2. **FMV.** The intro is MDEC `.STR`; verify streams decode and XA audio
-   is in sync.
-3. **Menus and input.** Shell (`SHELLDB1`/`SHELLDB2`) navigation via
-   `set_input`; then car select, level select, options.
-4. **Get into a match.** Load a level (`TMS`/`DMD`/`TERRAIN` assets) and
-   confirm the 3D pipeline, GTE output and collision.
-5. **Audio.** `SCREEN\UACORE.VAB` SPU bank, XA `.DA` streams, CDDA tracks
-   02–12.
-6. **Memory card.** Password/save flow.
-7. **Soak.** Long runs per level hunting for divergence, freezes, and the
-   ~4.5M interpreted `dirty_ram` instructions (find out what code that is —
-   the game has no disc overlays, so it should be identifiable and
-   statically recompilable).
+1. **Audio.** Nothing checked yet: the `SCREEN\UACORE.VAB` SPU bank, XA `.DA`
+   streams, CDDA tracks 02-12, and FMV audio sync.
+2. **Menus and input.** Drive the shell (`SHELLDB1`/`SHELLDB2`) with
+   `set_input` over the debug server; car select, level select, options.
+3. **Play a real match.** Get past attract into an actual game and check
+   collision, weapons, HUD and split-screen.
+4. **Renderer parity.** Compare software vs OpenGL output on the same frames;
+   the software rasterizer is the reference look.
+5. **Memory card.** Password and save flow.
+6. **Soak.** Long runs per level hunting divergence and freezes.
 
 ## Then — coverage and accuracy
 
+- Account for the interpreted `dirty_ram` instructions (~5.2M over 12.5k
+  frames). The game loads no disc overlays, so whatever runs there should be
+  identifiable and statically recompilable. Driving it to zero is the
+  headline goal.
 - Grow `seeds/ghidra_funcs.txt` from anything the runtime reports as
-  not-yet-native; drive toward 100% static coverage. This title has **no code
-  overlays**, so 100% is genuinely reachable — that is the headline goal.
+  not-yet-native; push toward 100% static coverage.
 - Populate `symbols.toml` as functions are identified. Use the Aug 1996
   prototype as a cross-reference (75.9% opcode-level match).
-- Cycle/IRQ timing accuracy; SPU reverb; renderer parity SW vs GL.
+- Cycle/IRQ timing accuracy; SPU reverb.
 
 ## Then — enhancements
 
@@ -55,10 +58,10 @@ Status of the recompilation, and what comes next. Update as things land.
 
 Planned, all default-disabled and independently toggleable:
 
-- **Cut content from the Aug 1996 prototype** — `Kali Mode`, `Thor Mode`,
-  the `ROOFEZ` easy-layout variant, and the reworded/cut strings listed in
+- **Cut content from the Aug 1996 prototype** — `Kali Mode`, `Thor Mode`, the
+  `ROOFEZ` easy-layout variant, and the reworded/cut strings listed in
   `docs/DISC_NOTES.md`.
-- Quality-of-life toggles (skip FMV, unlock everything, etc.).
+- Quality-of-life toggles (skip FMV, unlock everything, and so on).
 
 ## Deferred
 
