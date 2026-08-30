@@ -43,7 +43,18 @@ renderer = "opengl"
 aspect_ratio = "4:3"
 
 [controller]
+# Twisted Metal 2 shipped September 1996, a year before the DualShock,
+# and its pre-analog libpad silently discards input from a pad that
+# answers the read command with id 0x73. Presenting an analog pad makes
+# the game look completely dead to the controller while launcher hotkeys
+# still work. Verified over the SIO trace: id 0x73 -> no input, id 0x41
+# -> input works.
+#
+# lock_mode pins every seat to digital AFTER settings.toml is applied and
+# hides the launcher's pad-mode selector, so neither a stale settings
+# file nor a launcher-less run can boot a pad type this game cannot use.
 default_mode = "digital"
+lock_mode = true
 
 # Online mount gate: digests + track count + optional TOC fingerprint
 # (see docs/NETPLAY.md).

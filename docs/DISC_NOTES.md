@@ -113,3 +113,47 @@ older / newer
 ```
 
 These are the starting list for the cut-content mod work.
+
+## Controller: digital pad only
+
+Twisted Metal 2 shipped in September 1996, a year before the DualShock. Its
+libpad predates analog controllers and **silently discards input from a pad
+that answers the read command with id `0x73`** — the game looks completely
+dead to the controller, while launcher hotkeys keep working because they never
+go through SIO.
+
+Confirmed on the SIO trace. With an analog pad:
+
+```
+tx 0x01 -> rx 0xFF     address controller
+tx 0x42 -> rx 0x73     read command; 0x73 = DualShock in analog mode
+tx 0x00 -> rx 0x5A     ready
+                       ... game ignores the payload
+```
+
+With a digital pad:
+
+```
+tx 0x42 -> rx 0x41     0x41 = digital pad — game accepts input
+```
+
+`game.toml` therefore sets:
+
+```toml
+[controller]
+default_mode = "digital"
+lock_mode    = true
+```
+
+`lock_mode` is the load-bearing half. `default_mode` alone is only a default,
+and a launcher-written `settings.toml` carrying `p1_mode = "analog"` overrides
+it — which is exactly how this first showed up. `lock_mode` clamps every seat
+after all config sources are applied, hides the launcher's pad-mode selector,
+and forces `multitap_analog` off. Verified: with `settings.toml` deliberately
+set back to `p1_mode = "analog"`, the wire still shows `0x41`.
+
+### Open question
+
+`settings.toml` also carries `multitap = true`. Twisted Metal 2 has no
+multitap support, and two-player over two ports has not been tested yet.
+Worth re-checking when split-screen is exercised.
