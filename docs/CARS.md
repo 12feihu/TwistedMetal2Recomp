@@ -117,10 +117,32 @@ Writing **14** to `0x80164764` selects Dark Tooth for player one. The list's
 the car-select screen's own data — `0x0E` is 14, so that cheat is literally
 "set both players to Dark Tooth".
 
-**Untested.** Nothing here has been confirmed in a running match; it is all
-static analysis. Whether a player-controlled Dark Tooth is stable — it has no
-select-screen plate, and its model is structured for a boss — is exactly the
-kind of thing to check with the debug menu once a match can be reached.
+**This works.** Forcing the index has been played and is mostly functional,
+but it glitches periodically — expected, given the game ships no select-screen
+entry for it and its model is structured as a boss rather than a player car.
+"Switch view to see greatest" is the known workaround for the worst of it.
+
+The debug menu's Car picker includes index `0E` deliberately, since forcing
+the index is the only route in: no unlock flag for Dark Tooth exists (see
+below).
+
+### There is no unlock flag for it
+
+`func_80130DD0` builds the secret-character toggles on the options screen. It
+makes exactly **two** calls, one per unlock byte:
+
+```
+0x80180D04   Sweet Tooth
+0x80180D05   Minion
+```
+
+There is no third call and no third byte. So Dark Tooth was never wired into
+the selection UI at any level — not the plate, not the info screen, not an
+unlock.
+
+(Related: the "Slot 1"–"Slot 8" entries in the GameShark list target
+`0x80180CFC`–`0x80180D03`, which is the string `"LOADING"`. Those are
+garbage — only Slot 9 and Slot 10 are the real unlock bytes.)
 
 ## How to re-derive this
 
