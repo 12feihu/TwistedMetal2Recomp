@@ -9,3 +9,10 @@ name = "BootEntry"
 emit = false
 status = "guessed"
 note = "SYSTEM.CNF / EXE entry PC (probe seed)"
+
+# --- input ---------------------------------------------------------------
+# Not a function: the BIOS InitPAD buffer for port 1, located by diffing a
+# full RAM dump between "no buttons" and "Start held". Layout:
+#   +0 status (0xFF = no pad)  +1 pad id  +2..3 buttons  +4..7 stick axes
+# See docs/DISC_NOTES.md "Controller: digital pad only".
+#   pad1_buffer = 0x801B2D80

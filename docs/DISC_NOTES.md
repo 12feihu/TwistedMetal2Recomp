@@ -116,26 +116,10 @@ These are the starting list for the cut-content mod work.
 
 ## Controller: digital pad only
 
-Twisted Metal 2 shipped in September 1996, a year before the DualShock. Its
-libpad predates analog controllers and **silently discards input from a pad
-that answers the read command with id `0x73`** — the game looks completely
-dead to the controller, while launcher hotkeys keep working because they never
-go through SIO.
-
-Confirmed on the SIO trace. With an analog pad:
-
-```
-tx 0x01 -> rx 0xFF     address controller
-tx 0x42 -> rx 0x73     read command; 0x73 = DualShock in analog mode
-tx 0x00 -> rx 0x5A     ready
-                       ... game ignores the payload
-```
-
-With a digital pad:
-
-```
-tx 0x42 -> rx 0x41     0x41 = digital pad — game accepts input
-```
+Twisted Metal 2 shipped in September 1996, a year before the DualShock.
+Presenting an analog pad makes the game look completely dead to the
+controller, while launcher hotkeys keep working because they never go through
+SIO.
 
 `game.toml` therefore sets:
 
@@ -151,6 +135,59 @@ it — which is exactly how this first showed up. `lock_mode` clamps every seat
 after all config sources are applied, hides the launcher's pad-mode selector,
 and forces `multitap_analog` off. Verified: with `settings.toml` deliberately
 set back to `p1_mode = "analog"`, the wire still shows `0x41`.
+
+### The actual mechanism
+
+The first guess — "the game checks the pad ID and discards the payload" — is
+**wrong**, and worth recording because it is the intuitive answer:
+
+- The game never compares the pad ID against `0x41`/`0x73`. A scan of all
+  183,808 text instructions finds no `ADDI/ADDIU/SLTI/SLTIU/ANDI/ORI/XORI`
+  carrying either immediate anywhere near a byte load.
+- The buttons **do** reach the game with an analog pad attached.
+
+TM2 uses the old BIOS-polled pad interface: `InitPAD` (`B(0x12)`) and
+`StartPAD` (`B(0x13)`), each called exactly once at boot, after which the BIOS
+fills the game's buffer from its own handler. That buffer was located at
+**`0x801B2D80`** by diffing a full RAM dump between "no buttons" and "Start
+held":
+
+```
+        +0   +1   +2 +3    +4 +5 +6 +7
+digital 00   41   ff ff    00 00 00 00     idle
+        00   41   f7 ff    00 00 00 00     Start held
+analog  00   73   ff ff    80 80 80 80     idle
+        00   73   f7 ff    80 80 80 80     Start held   <- buttons still correct
+        ^^   ^^   ^^^^^    ^^^^^^^^^^^
+      status  id  buttons  stick axes (0x80 = centred)
+```
+
+Byte 0 is the InitPAD status byte, where `0xFF` means *no pad connected*.
+Sampling it 60 times:
+
+| pad mode | status `0x00` (present) | status `0xFF` (absent) |
+|---|---|---|
+| digital (`0x41`) | 56 | 4 |
+| analog (`0x73`) | 29 | 31 |
+
+So with an analog pad the BIOS pad driver marks the controller **absent on
+roughly half the polls**. The game reads valid buttons, then throws the frame
+away on the standard `if (buf[0] == 0xFF)` "no pad" check. A held button never
+survives two consecutive frames, so nothing registers as a press and input
+looks entirely dead.
+
+### Why real hardware behaved differently
+
+On a real PS1, pressing the ANALOG button *mid-game* was reported to lock the
+controls in whatever direction was held, with L2/R2 appearing stuck. Same
+root cause, different starting point: the flicker begins mid-session, when the
+game already holds a valid button word. On the frames the pad reads as absent
+the game keeps its last known state rather than clearing it, so the direction
+held at the instant of the toggle latches.
+
+The stuck L2/R2 specifically is **not explained** by anything measured here —
+it would need the game's own input routine disassembled, or an oracle run
+against real hardware. Recorded as an open question, not a conclusion.
 
 ### Open question
 
