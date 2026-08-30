@@ -92,6 +92,41 @@ are the first real function symbols for this project:
 an unconditional branch — so that is an out-of-bounds check guarding a
 position update.
 
+## Game-setup block at 0x80164760
+
+Named by the "Modifier" cheats. Byte-sized fields:
+
+| Address | Field |
+|---|---|
+| `0x80164760` | number of human players (0-2) |
+| `0x80164764` | P1 car index |
+| `0x80164765` | P2 car index |
+| `0x80164766`-`0x8016476E` | computer cars 1-9 |
+| `0x80164770` | P1 lives (a `u16` in the cheat) |
+| `0x80164774` | level index |
+
+Car indices resolve through `docs/CARS.md` (0 = Hammerhead ... 14 = Dark
+Tooth). All zero in the EXE image; filled at runtime.
+
+## Player 1 button word at 0x80180D34
+
+The "Joker Command" and "Select & X to Kill Enemy N" cheats test a halfword at
+`0x80180D34`, which is the game's own copy of the pad state. Decoding the
+combinations those cheats use gives its bit layout, which is **not** the
+hardware order and is **not** inverted:
+
+| Bit | Button | | Bit | Button |
+|---|---|---|---|---|
+| 0 | L2 | | 5 | Circle |
+| 1 | R2 | | 6 | Cross |
+| 2 | L1 | | 7 | Square |
+| 3 | R1 | | 8 | Select |
+| 4 | Triangle | | | |
+
+Derived from: Select alone `0x0100`, +L2 `0x0101`, +R2 `0x0102`, +L1 `0x0104`,
++R1 `0x0108`, +Triangle `0x0110`, +Circle `0x0120`, +Cross `0x0140`,
++Square `0x0180`.
+
 ## Errors found in the source cheat list
 
 Recorded so they are not mistaken for real findings later:

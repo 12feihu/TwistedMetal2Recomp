@@ -8,6 +8,14 @@
 #define PSX_FN_CollisionWallResponse 0x800E3800u
 #define func_800E3800 CollisionWallResponse  /* alias */
 
+/* confirmed: switch(index<15) -> 2-letter asset code, e.g. 14 -> "BB"; jump table at 0x800CFBB8; default "UNKNOWN CAR" */
+#define PSX_FN_CarIndexToAssetCode 0x8012ADA0u
+#define func_8012ADA0 CarIndexToAssetCode  /* alias */
+
+/* confirmed: switch(index<15) -> display name, e.g. 14 -> "Dark Tooth"; jump table at 0x800CFBF8; default "UNKNOWN CAR" */
+#define PSX_FN_CarIndexToName 0x8012AEC4u
+#define func_8012AEC4 CarIndexToName  /* alias */
+
 /* guessed: jal at 0x8012CB50 (SingleTrac logo) and 0x8012DDA4 (intro); NOP-ing either skips that movie */
 #define PSX_FN_PlayFmv 0x8012B898u
 #define func_8012B898 PlayFmv  /* alias */
