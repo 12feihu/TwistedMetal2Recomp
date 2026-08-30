@@ -24,7 +24,14 @@ set(PSX_SETUP_WIZARD ON CACHE BOOL
     "Advertise first-run setup wizard + Generate & rebuild in recomp-ui" FORCE)
 include("${PSXRECOMP_ROOT}/runtime/runtime.cmake")
 
+# All custom code for this project lives under src/mods/ and is compiled into
+# psx-runtime here. The recompiled game C in generated/ stays vanilla; the mod
+# system decides at resolve time which of these plugins actually run.
+file(GLOB TM2_MOD_SOURCES CONFIGURE_DEPENDS
+     "${CMAKE_CURRENT_SOURCE_DIR}/src/mods/*.c")
+
 psxrecomp_add_game_runtime(psx-runtime
+    EXTRAS_SOURCES ${TM2_MOD_SOURCES}
     # ENABLE_NETPLAY_IF_PRESENT
     # NETPLAY_LOBBY_URL ws://netplay.retcomm.net:8765
     ENABLE_SETUP_WIZARD
@@ -37,6 +44,19 @@ psxrecomp_add_game_runtime(psx-runtime
     GEN_FULL_GLOB "generated/SCUS_943.06_full_*.c"
     CODEGEN_SETUP_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/codegen_setup.c"
 )
+
+# Stage this project's own mod catalog next to the executable. runtime.cmake
+# stages the framework-owned packages first and merges rather than replaces, so
+# this must run after it -- which it does, being registered later on the same
+# target. Player-installed .psxmod archives and mods/state.toml are untouched.
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/mods/preloaded/packages")
+    add_custom_command(TARGET psx-runtime POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${CMAKE_CURRENT_SOURCE_DIR}/mods/preloaded"
+            "$<TARGET_FILE_DIR:psx-runtime>/mods"
+        COMMENT "Staging TwistedMetal2 mod catalog"
+        VERBATIM)
+endif()
 
 # Stage runtime configs next to the exe for direct build/ launches. Only copy
 # files that exist — never fail POST_BUILD when game_options.toml is absent.

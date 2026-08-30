@@ -1,0 +1,43 @@
+format_version = 5
+id = "tm2.debug"
+version = "1.0.0"
+name = "Twisted Metal 2 Debug Menu"
+author = "TwistedMetal2Recomp"
+description = """
+Development tooling: an in-game debug menu (F1) exposing the imported
+GameShark code list as toggleable functions. Default-disabled.
+"""
+license = "MIT"
+resolver = "declarative"
+save_compatibility = "shared"
+channel = "developer"
+
+[[target]]
+game_id = "SCUS-94306"
+
+[[feature]]
+id = "debug-menu"
+name = "Debug Menu (F1)"
+description = """
+Opens a single-line selector over the game. PageUp/PageDown move between
+entries, Home/End jump by category, Insert toggles, Delete turns everything
+off. Enabled cheats are re-applied every VBlank, the way a real GameShark
+works.
+
+Entries are tagged by the memory they touch:
+  RAM  runtime state; safe at any time
+  EXE  patches an instruction in the executable
+  LVL  streamed level data; only meaningful once the matching level is
+       loaded, and can corrupt whatever else occupies that memory
+
+Nothing is gated -- the tag is information, not a restriction.
+"""
+group = "Development"
+default_enabled = false
+
+# The implementation is compiled into the executable (src/mods/tm2_debug.c)
+# and selected here by its stable registry id. The package supplies no native
+# code of its own.
+[[plugin]]
+feature = "debug-menu"
+id = "tm2.debug.menu"

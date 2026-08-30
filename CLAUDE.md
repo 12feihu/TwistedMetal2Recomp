@@ -108,6 +108,18 @@ useful for naming functions, and it carries cut content (`Kali Mode`,
 `Thor Mode`, `ROOFEZ`, reworded level names) that is planned as toggleable
 `.psxmod` packages once retail boots.
 
+## Custom code lives in mods, not in the game
+
+The recompiled game C in `generated/` stays **vanilla**. Everything we add is
+a trusted plugin under `src/mods/`, compiled into `psx-runtime` via
+`EXTRAS_SOURCES` in `CMakeLists.txt` and selected at resolve time by a
+`.psxmod` package in `mods/preloaded/packages/`. The archive never carries
+native code; the manifest names a registry id and the compiled-in
+implementation claims it.
+
+First consumer: the F1 debug menu / GameShark cheat engine. See
+`docs/DEBUG_MENU.md` and `docs/RAM_MAP.md`.
+
 ## Conventions
 
 - Never commit disc images, BIOS dumps, `generated/`, or ripped assets.
