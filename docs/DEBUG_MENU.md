@@ -87,6 +87,58 @@ TM2_DEBUG_CHEATS=skip-single-trac-movie,skip-intro-movie \
 
 Unknown ids are reported on stderr and skipped.
 
+## External GUI panel
+
+`tools/tm2_debug_gui` is a Dear ImGui panel with a checkbox per cheat,
+collapsible category sections, a filter box and colour-coded region tags.
+
+It is a **separate process on purpose.** The plugin's callback runs on the
+emulation thread at guest VBlank, so an in-process panel would have to create
+a window and borrow the game's OpenGL context from inside guest execution.
+Out of process, nothing it does can disturb the renderer, the event loop or
+timing, and if it crashes the game keeps running.
+
+It costs no new dependencies: Dear ImGui and the SDL3/OpenGL3 backends are
+already vendored in `recomp-ui` and linked into this build.
+
+```bash
+cmake -S . -B build-dev -G Ninja -DPSX_DEBUG_TOOLS=ON -DTM2_BUILD_DEBUG_GUI=ON
+cmake --build build-dev --target tm2-debug-gui
+```
+
+The binary lands next to the game. Start the game (with the mod enabled), then
+run `tm2-debug-gui`. It polls twice a second, so it follows changes made with
+the in-game F1 menu and reconnects on its own when the game restarts.
+
+| Flag | Effect |
+|---|---|
+| `--port N` | control port (default 4371; `TM2_DEBUG_GUI_PORT` also works) |
+| `--selftest` | connect, toggle a cheat, verify, restore, exit with a status code |
+| `--screenshot F.bmp` | render one frame to a file and exit |
+
+The last two exist so the panel can be checked without a human at the screen,
+which is otherwise impossible for a GUI.
+
+### Control protocol
+
+Line-oriented text on `127.0.0.1:4371`, served by `src/mods/tm2_debug_ipc.c`.
+Not JSON: the peer is ours, and a hand-rolled JSON parser in C would have been
+the largest and least reliable part of that file.
+
+```
+LIST                OK <n>, then n rows: idx 	 on 	 region 	 category 	 name 	 id
+SET <index> <0|1>   OK
+TOGGLE <index>      OK <enabled>
+CLEAR               OK
+STATUS              OK <active> <total>
+PING                OK
+```
+
+The server is bound to loopback, non-blocking throughout, and polled from the
+VBlank callback -- a single blocking `accept`, `recv` or `send` there would
+stall the game, so partial sends are buffered per client and retried on later
+frames.
+
 ## Two things specific to a recompilation
 
 **Code patches cannot just poke RAM.** The game is statically recompiled, so
@@ -99,6 +151,13 @@ executable-RAM path. This is what makes "Skip Intro Movie" work: it NOPs a
 **Everything is re-applied every VBlank**, which is what real GameShark
 hardware does. A one-shot write would be undone by the game's own logic on the
 next frame.
+
+**Turning a code patch off restores the original instruction.** RAM writes
+need no undo -- the game overwrites those itself, which is precisely why they
+must be re-applied every frame. An instruction is different: nothing in the
+game ever writes it back, so the stock word is recorded at import time and put
+back on the transition to disabled. Verified by round-tripping
+`drive-through-walls`: `jal` -> NOP -> `jal` -> NOP -> `jal`.
 
 ## Region tags, and the risk
 

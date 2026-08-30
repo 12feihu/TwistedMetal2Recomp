@@ -45,6 +45,40 @@ psxrecomp_add_game_runtime(psx-runtime
     CODEGEN_SETUP_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/codegen_setup.c"
 )
 
+# --- External debug GUI ----------------------------------------------------
+# A separate process, deliberately: the cheat engine's callback runs on the
+# emulation thread at guest VBlank, so an in-process panel would have to build
+# a window and borrow the game's GL context from inside guest execution. This
+# reuses the Dear ImGui and SDL3 already pulled in for recomp-ui, so it costs
+# no new dependencies. Off by default -- it is a development tool.
+option(TM2_BUILD_DEBUG_GUI "Build the external ImGui debug panel" OFF)
+if(TM2_BUILD_DEBUG_GUI)
+    set(TM2_IMGUI "${CMAKE_CURRENT_SOURCE_DIR}/recomp-ui/src/third_party/imgui")
+    if(NOT EXISTS "${TM2_IMGUI}/imgui.cpp")
+        message(FATAL_ERROR
+            "TM2_BUILD_DEBUG_GUI needs the recomp-ui submodule (vendored ImGui) "
+            "at ${TM2_IMGUI}. Run: git submodule update --init --recursive")
+    endif()
+    add_executable(tm2-debug-gui
+        "${CMAKE_CURRENT_SOURCE_DIR}/tools/tm2_debug_gui/main.cpp"
+        "${TM2_IMGUI}/imgui.cpp"
+        "${TM2_IMGUI}/imgui_draw.cpp"
+        "${TM2_IMGUI}/imgui_tables.cpp"
+        "${TM2_IMGUI}/imgui_widgets.cpp"
+        "${TM2_IMGUI}/backends/imgui_impl_sdl3.cpp"
+        "${TM2_IMGUI}/backends/imgui_impl_opengl3.cpp")
+    target_include_directories(tm2-debug-gui PRIVATE "${TM2_IMGUI}")
+    target_link_libraries(tm2-debug-gui PRIVATE SDL3::SDL3)
+    if(WIN32)
+        target_link_libraries(tm2-debug-gui PRIVATE opengl32 ws2_32)
+    else()
+        find_package(OpenGL REQUIRED)
+        target_link_libraries(tm2-debug-gui PRIVATE OpenGL::GL)
+    endif()
+    set_target_properties(tm2-debug-gui PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "$<TARGET_FILE_DIR:psx-runtime>")
+endif()
+
 # Stage this project's own mod catalog next to the executable. runtime.cmake
 # stages the framework-owned packages first and merges rather than replaces, so
 # this must run after it -- which it does, being registered later on the same

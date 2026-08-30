@@ -192,6 +192,11 @@ def emit_c(path, cheats, source_name):
                 "    uint16_t value;\n"
                 "    uint8_t  kind;\n"
                 "    uint8_t  region;\n"
+                "    /* Image ops only: the containing word as it appears in the\n"
+                "     * stock EXE. Turning a code patch off has to put this back,\n"
+                "     * because unlike a RAM write the game will never overwrite\n"
+                "     * an instruction itself. Zero for non-image ops. */\n"
+                "    uint32_t orig_word;\n"
                 "} Tm2CheatOp;\n\n")
         f.write("typedef struct {\n"
                 "    const char *id;\n"
@@ -204,9 +209,9 @@ def emit_c(path, cheats, source_name):
 
         f.write("static const Tm2CheatOp tm2_cheat_ops[] = {\n")
         for op in ops:
-            f.write("    { 0x%08Xu, 0x%04Xu, %s, %s },\n"
+            f.write("    { 0x%08Xu, 0x%04Xu, %s, %s, 0x%08Xu },\n"
                     % (op["addr"], op["value"], C_KIND[op["kind"]],
-                       C_REGION[op["region"]]))
+                       C_REGION[op["region"]], op.get("orig_word", 0)))
         f.write("};\n\n")
 
         f.write("static const Tm2Cheat tm2_cheats[] = {\n")

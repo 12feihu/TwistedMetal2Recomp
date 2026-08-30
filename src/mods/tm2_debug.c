@@ -40,6 +40,7 @@
  */
 
 #include "tm2_cheat_table.h"
+#include "tm2_debug_state.h"
 
 #include "host_osd.h"
 #include "mod_plugins.h"
@@ -53,6 +54,9 @@
 
 /* One bit per cheat. */
 static uint8_t s_enabled[(TM2_CHEAT_COUNT + 7) / 8];
+/* Which cheats currently have their patches in guest memory, so a
+ * disable can put code patches back exactly once. */
+static uint8_t s_applied[(TM2_CHEAT_COUNT + 7) / 8];
 static int     s_menu_open;
 static int     s_cursor;
 static int     s_active_count;
@@ -70,6 +74,42 @@ static void cheat_set(int i, int on)
 {
     if (on) s_enabled[i >> 3] |= (uint8_t)(1u << (i & 7));
     else    s_enabled[i >> 3] &= (uint8_t)~(1u << (i & 7));
+}
+
+/* ---- state surface shared with the control server (tm2_debug_state.h) ---- */
+
+int tm2_cheat_count(void) { return TM2_CHEAT_COUNT; }
+
+const Tm2Cheat *tm2_cheat_at(int index)
+{
+    if (index < 0 || index >= TM2_CHEAT_COUNT) return &tm2_cheats[0];
+    return &tm2_cheats[index];
+}
+
+int tm2_cheat_is_enabled(int index)
+{
+    if (index < 0 || index >= TM2_CHEAT_COUNT) return 0;
+    return cheat_enabled(index);
+}
+
+int tm2_cheat_active_count(void) { return s_active_count; }
+
+static void recount_active(void);
+static void redraw(void);
+
+void tm2_cheat_set_enabled(int index, int enabled)
+{
+    if (index < 0 || index >= TM2_CHEAT_COUNT) return;
+    cheat_set(index, enabled);
+    recount_active();
+    redraw();
+}
+
+void tm2_cheat_clear_all(void)
+{
+    memset(s_enabled, 0, sizeof(s_enabled));
+    recount_active();
+    redraw();
 }
 
 static const char *region_tag(uint8_t region)
@@ -97,6 +137,27 @@ static void write_half(const Tm2CheatOp *op)
             psx_mod_write_code_word(word_addr, next);
     } else {
         psx_mod_write_half(op->addr, op->value);
+    }
+}
+
+/*
+ * Undo a cheat's code patches.
+ *
+ * RAM writes need no undo -- the game overwrites those itself on the next
+ * frame, which is exactly why they have to be re-applied every VBlank. An
+ * instruction is different: nothing in the game ever writes it back, so
+ * without this a patch would survive being switched off for the rest of the
+ * session.
+ */
+static void revert_cheat(const Tm2Cheat *c)
+{
+    for (uint16_t i = 0; i < c->op_count; i++) {
+        const Tm2CheatOp *op = &tm2_cheat_ops[c->first_op + i];
+        if (op->region != TM2_REGION_IMAGE || op->kind == TM2_OP_IF_EQ16)
+            continue;
+        uint32_t word_addr = op->addr & ~3u;
+        if (psx_mod_read_word(word_addr) != op->orig_word)
+            psx_mod_write_code_word(word_addr, op->orig_word);
     }
 }
 
@@ -233,13 +294,22 @@ static void menu_tick(void)
 
 static void tm2_debug_vblank(void)
 {
+    tm2_ipc_poll();
     menu_tick();
 
     if (!psx_mod_game_started()) return;
 
-    for (int i = 0; i < TM2_CHEAT_COUNT; i++)
-        if (cheat_enabled(i))
+    for (int i = 0; i < TM2_CHEAT_COUNT; i++) {
+        int on = cheat_enabled(i);
+        int was = (s_applied[i >> 3] >> (i & 7)) & 1;
+        if (on) {
             apply_cheat(&tm2_cheats[i]);
+            s_applied[i >> 3] |= (uint8_t)(1u << (i & 7));
+        } else if (was) {
+            revert_cheat(&tm2_cheats[i]);
+            s_applied[i >> 3] &= (uint8_t)~(1u << (i & 7));
+        }
+    }
 }
 
 /*
@@ -289,6 +359,7 @@ static void apply_env_selection(void)
 static void tm2_debug_activate(void)
 {
     memset(s_enabled, 0, sizeof(s_enabled));
+    memset(s_applied, 0, sizeof(s_applied));
     memset(s_key_prev, 0, sizeof(s_key_prev));
     s_menu_open = 0;
     s_cursor = 0;
@@ -296,6 +367,7 @@ static void tm2_debug_activate(void)
     fprintf(stdout, "tm2.debug: debug menu active (%d cheats); press F1\n",
             TM2_CHEAT_COUNT);
     apply_env_selection();
+    tm2_ipc_start();
     host_osd_push("Debug menu: F1", 2500);
     redraw();
 }
