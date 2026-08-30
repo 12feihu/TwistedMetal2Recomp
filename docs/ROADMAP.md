@@ -20,7 +20,8 @@ Status of the recompilation, and what comes next. Update as things land.
       loading screen (`LOADING / LOS ANGELES`, TIM art and fonts correct) ->
       **in-game attract demo rendering the Los Angeles arena** with textured
       terrain and walls, car model, skybox, a semi-transparent light beam and
-      a health pickup. GPU draw commands climb steadily (~250 draws/frame).
+      a health pickup. GPU command traffic climbs steadily while the
+      demo runs (~7.4M GP0 writes over a 3 s sample).
 
 ## Next — bring-up
 
