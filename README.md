@@ -201,24 +201,27 @@ reverse-engineering exercise.
 
 ### Licensing
 
-The code in this repository — `src/mods/`, `tools/`, the configuration and the
-documentation — is **MIT**.
-
-That does not make the whole thing MIT, because a build links against the
-framework:
+This repository is **PolyForm Noncommercial 1.0.0** (see `LICENSE`), matching
+the framework it is built on. Read, fork, modify, redistribute, publish your
+own findings — all fine. Selling it, or using it as part of something you
+sell, is not.
 
 | Component | Licence |
 |---|---|
-| This repository's own code | MIT |
-| [`psxrecomp`](https://github.com/mstan/psxrecomp) — recompiler + runtime | **PolyForm Noncommercial 1.0.0** |
+| This repository | PolyForm Noncommercial 1.0.0 |
+| [`psxrecomp`](https://github.com/mstan/psxrecomp) — recompiler + runtime | PolyForm Noncommercial 1.0.0 |
 | [`recomp-ui`](https://github.com/mstan/recomp-ui) — launcher | MIT |
 | OpenBIOS (bundled by the framework) | MIT |
 | Dear ImGui, SDL3 | MIT / zlib |
 
-PolyForm Noncommercial permits "any noncommercial purpose" — so anything you
-build from this repository is **for noncommercial use only**, regardless of
-the MIT licence on our own files. Do not read the MIT licence here as
-permission to use the resulting binary commercially.
+A permissive licence here would have been misleading, since every build links
+against a noncommercial framework regardless of what this repository says.
+
+To be precise about terms: PolyForm Noncommercial is **source-available**, not
+open source in the OSI sense — the OSI definition forbids restricting the
+field of use, and this restricts commercial use. The source is public, the
+history is public, and anyone may build on it; it simply is not "open source"
+as that phrase is formally defined.
 
 None of the above applies to the game itself, which is not licensed to anyone
 by this project.
