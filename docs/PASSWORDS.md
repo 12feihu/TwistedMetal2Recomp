@@ -108,7 +108,17 @@ final-stage flag; with the character fixed at 14 the low symbols move only
 with the level, so the tail is nearly constant. That repetition is a good
 tell that a password belongs to an unrepresentable character.
 
-## Usage
+## Generator
+
+`tools/password_generator.html` is a self-contained page — pick a driver and a
+stage, get the six symbols. Open it directly in a browser; there is no build
+step and no network dependency beyond the webfonts.
+
+It uses the same rules as the validator, so selecting Sweet Tooth, Minion or
+Dark Tooth shows the code the game itself would display **and** explains why
+that code is refused on entry.
+
+## Command line
 
 ```bash
 python tools/tm2_password.py decode "T O _ _ O X"

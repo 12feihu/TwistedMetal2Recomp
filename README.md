@@ -170,7 +170,7 @@ game.toml                 game identity, disc path, runtime settings
 symbols.toml              progressive symbol map -> psx_symbols.h
 seeds/ghidra_funcs.txt    function-entry seeds fed to the recompiler
 src/mods/                 our code: cheat engine, debug menu, control server
-tools/                    GameShark importer, debug GUI, helper scripts
+tools/                    GameShark importer, debug GUI, password generator
 mods/                     .psxmod packages and the cheat/value tables
 docs/                     project documentation
 psxrecomp/  recomp-ui/    framework submodules
