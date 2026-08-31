@@ -50,6 +50,10 @@ says so.
 The framework underneath (`psxrecomp`, `recomp-ui`) is a separate project and
 not ours.
 
+I'm not here to claim work as my own, I'm here only to help the community figure
+out how aspects of the game work to be ported back to PS1. The PC port is only a
+side project because why not.
+
 ---
 
 ## How it works
