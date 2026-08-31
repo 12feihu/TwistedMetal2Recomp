@@ -78,6 +78,21 @@ measured across many samples, so this is not noise: players and AI cars are
 either two separate arrays or two different structure types. Do not assume a
 single unified car array until this is checked at runtime.
 
+> **Resolved — and the base above is not the struct base.** Both arrays have
+> since been recovered from the game's own index-to-pointer helpers and read
+> at runtime (`docs/DARK_TOOTH.md`):
+>
+> | Array | Base | Stride | From |
+> |---|---|---|---|
+> | player vehicles | `0x80187B10` | `0x814` | `func_8011CEE8` |
+> | AI vehicles | `0x80188B5C` | `0x854` | `func_8011D128` |
+>
+> The stride was right in both cases. The bases were not: the addresses in
+> this file point at *fields*, not at objects. `0x80187BB8` is player
+> vehicle `+0xA8`, and the "Kill Enemy N" addresses are
+> `ai_vehicle[n] + 0x5A0` — health. Position is at `+0x10`/`+0x14`/`+0x18`
+> and the behaviour mode at `+0x10C`.
+
 ## Discovered functions
 
 Three cheats work by NOP-ing a `jal`, which names the callee outright. These
@@ -91,6 +106,13 @@ are the first real function symbols for this project:
 `0x8014F214` holds `blez $s4, 0x8014F698`, which "Drive Anywhere" rewrites to
 an unconditional branch — so that is an out-of-bounds check guarding a
 position update.
+
+> **Corrected.** Disassembled: the surrounding code is COP2/GTE
+> (`0x8014F1F0`–`0x8014F204` are GTE ops, and it uses `$gp`/`$sp`/`$fp` as
+> scratch), so this is a transform-and-clip routine and the `blez` chain is a
+> rejection test on transformed coordinates — not a position update. The
+> cheat works by refusing to reject, which is not the same thing. Position
+> updates live in `func_80102CC4` and friends (`docs/DARK_TOOTH.md`).
 
 ## Game-setup block at 0x80164760
 

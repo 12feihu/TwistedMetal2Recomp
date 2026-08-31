@@ -1,0 +1,82 @@
+format_version = 1
+id = "tm2.password-fix"
+version = "1.0.0"
+name = "Password Fix"
+author = "TwistedMetal2Recomp"
+description = """
+Makes the game accept the passwords it already prints for Sweet Tooth, Minion
+and Dark Tooth.
+"""
+license = "PolyForm-Noncommercial-1.0.0"
+resolver = "declarative"
+save_compatibility = "shared"
+
+[[target]]
+game_id = "SCUS-94306"
+
+[[feature]]
+id = "all-drivers"
+name = "Accept every driver's password"
+description = """
+The password generator and the password validator disagree about the width of
+one field.
+
+The generator writes the driver number plus four as a FIVE-bit value spanning
+bits 4-8. The validator reads only FOUR bits (4-7) and treats bit 8 as a
+separate flag. For drivers 0-11 that never matters -- the value is 4..15, it
+fits, and bit 8 stays clear. For Sweet Tooth (12), Minion (13) and Dark Tooth
+(14) it is 16, 17 and 18, which overflow into bit 8: the validator then reads
+a driver number of 0, 1 or 2, subtracts four, and rejects the result.
+
+So the game shows you a perfectly well-formed password on the pause screen --
+correct stage, correct checksum, computed from the real driver index -- and
+then refuses it on entry.
+
+This widens the validator to match the generator. Three instructions:
+
+  0x8012CEC0  andi  15 -> 31   read the driver field as five bits
+  0x8012CED4  sltiu 12 -> 15   accept driver numbers 0..14
+  0x8012CEE8  srl    8 -> 14   take the spare flag from an unused bit
+
+The third is needed because bit 8 now belongs to the driver field. Bit 14 is
+always clear -- six base-5 symbols top out at 15624, below 2^14 -- so the flag
+reads zero exactly as it always did for valid passwords.
+
+Verified against all 120 driver/stage combinations -- 15 drivers by 8 entry
+points, Hong Kong and the Dark Tooth battle counted separately, since those
+two differ only in bit 9. Every one round-trips, and none of the twelve
+normally-selectable drivers changes behaviour.
+
+Bit 8 is safe to reclaim because the encoder never sets it: character + 4
+reaches at most 15 for the selectable drivers, and the final-battle flag lands
+in bit 9. No password the stock game produces has bit 8 set.
+
+Passwords are unchanged. The ones already published still work, and the codes
+this unlocks are the ones the unmodified game was already showing you.
+"""
+group = "Fixes"
+default_enabled = false
+
+# Guarded against the stock words, so the package fails closed on any other
+# revision rather than corrupting a build it does not understand.
+
+[[patch]]
+feature = "all-drivers"
+target = "main_exe"
+address = 0x8012CEC0
+expected = "0f 00 42 30"
+replace = "1f 00 42 30"
+
+[[patch]]
+feature = "all-drivers"
+target = "main_exe"
+address = 0x8012CED4
+expected = "0c 00 42 2c"
+replace = "0f 00 42 2c"
+
+[[patch]]
+feature = "all-drivers"
+target = "main_exe"
+address = 0x8012CEE8
+expected = "02 12 03 00"
+replace = "82 13 03 00"

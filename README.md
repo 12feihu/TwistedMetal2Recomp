@@ -147,6 +147,32 @@ specific to patching a *recompiled* game, are in `docs/DEBUG_MENU.md`.
 
 ---
 
+## Mods
+
+Everything optional ships as a `.psxmod` package under
+`mods/preloaded/packages/`, **default disabled**, with every executable patch
+guarded on the stock instruction so it fails closed on the wrong disc revision.
+
+| Package | What it does |
+|---|---|
+| `tm2.debug` | The cheat engine, F1 menu and control server described above |
+| `tm2.password-fix` | Makes the game accept the passwords it already prints for Sweet Tooth, Minion and Dark Tooth |
+
+`tm2.password-fix` is three instructions. The game's password *encoder* writes
+the driver number as a five-bit field; its *validator* reads four bits and
+treats the fifth as a flag. For the twelve selectable drivers the value fits
+and nobody notices. For the three that are not selectable it overflows, so the
+game displays a perfectly well-formed password — right stage, right checksum,
+computed from the real driver index — and then refuses it on entry. The patch
+widens the validator to agree with the encoder. No password changes; the codes
+it accepts are the ones the unmodified game was already showing you.
+
+`docs/PASSWORDS.md` has the full format, including the fact that level 8 has
+**two** passwords — Hong Kong and the Dark Tooth battle — separated by a
+single bit.
+
+---
+
 ## Documentation
 
 | File | Contents |
@@ -157,6 +183,7 @@ specific to patching a *recompiled* game, are in `docs/DEBUG_MENU.md`.
 | `docs/RAM_MAP.md` | Player and enemy structures, the game-setup block, the pad word, and errors found in the source cheat list |
 | `docs/DEBUG_MENU.md` | The mod, the GUI, the control protocol, and open problems |
 | `docs/PASSWORDS.md` | The password format, fully decoded — and why Dark Tooth's displayed password can never be entered |
+| `docs/DARK_TOOTH.md` | The head: the per-vehicle behaviour mode, the attachment code, and the global that decides what the head follows |
 | `docs/PROTOTYPE.md` | The Aug 1996 prototype: the two cheat modes cut before release, and why |
 | `docs/ROADMAP.md` | Current status and what is next |
 | `CLAUDE.md` | Working notes and build environment quirks |
@@ -170,7 +197,7 @@ game.toml                 game identity, disc path, runtime settings
 symbols.toml              progressive symbol map -> psx_symbols.h
 seeds/ghidra_funcs.txt    function-entry seeds fed to the recompiler
 src/mods/                 our code: cheat engine, debug menu, control server
-tools/                    GameShark importer, debug GUI, password generator
+tools/                    GameShark importer, debug GUI, password generator, static xref
 mods/                     .psxmod packages and the cheat/value tables
 docs/                     project documentation
 psxrecomp/  recomp-ui/    framework submodules
@@ -189,11 +216,11 @@ All of that is produced locally from a disc you already own.
 
 Two small exceptions, stated for completeness:
 
-- `mods/tm2-debug/cheats.toml` and `src/mods/tm2_cheat_table.h` contain **15
-  32-bit words** (60 bytes) copied verbatim from the game executable. They are
-  the original instructions at the addresses a code patch overwrites, recorded
-  so a patch can verify what it is replacing and fail closed on the wrong disc
-  revision.
+- `mods/tm2-debug/cheats.toml`, `src/mods/tm2_cheat_table.h` and the
+  `tm2.password-fix` manifest together contain **18 32-bit words** (72 bytes)
+  copied verbatim from the game executable. They are the original instructions
+  at the addresses a code patch overwrites, recorded so a patch can verify
+  what it is replacing and fail closed on the wrong disc revision.
 - `seeds/ghidra_funcs.txt`, `symbols.toml` and `psx_symbols.h` contain
   **addresses**, not code.
 
