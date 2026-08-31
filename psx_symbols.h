@@ -20,6 +20,14 @@
 #define PSX_FN_PlayFmv 0x8012B898u
 #define func_8012B898 PlayFmv  /* alias */
 
+/* confirmed: decodes a 14-bit password: bits1-3 level-1, bits4-7 char+4, bit9 final-stage, bits10-13 checksum ((char+1)*(level-1))%13; rejects char>=12 via sltiu at 0x8012CED4 */
+#define PSX_FN_PasswordDecode 0x8012CE7Cu
+#define func_8012CE7C PasswordDecode  /* alias */
+
+/* guessed: password entry UI; draws 'invalid password' at 0x800CFE38 on rejection */
+#define PSX_FN_PasswordEntryScreen 0x8012E908u
+#define func_8012E908 PasswordEntryScreen  /* alias */
+
 /* guessed: SYSTEM.CNF / EXE entry PC (probe seed) */
 #define PSX_FN_BootEntry 0x8013878Cu
 #define func_8013878C BootEntry  /* alias */
