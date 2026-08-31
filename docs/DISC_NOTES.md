@@ -94,12 +94,17 @@ codebase, so the prototype is a usable cross-reference for naming functions.
 
 ### Strings present only in the prototype
 
-Cheats / modes cut before release:
+Cheat toggles cut before release:
 
 ```
 Kali Mode      Kali Mode Off
 Thor Mode      Thor Mode Off
 ```
+
+Both turn out to be **unfinished stubs**, not working features that were
+removed: they are wired into the combo handler and print HUD messages, but
+Thor's flag is written once and never read, and Kali sets no flag at all.
+See `docs/PROTOTYPE.md` for the evidence.
 
 Text cut or reworded:
 

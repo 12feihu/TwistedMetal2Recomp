@@ -156,6 +156,7 @@ specific to patching a *recompiled* game, are in `docs/DEBUG_MENU.md`.
 | `docs/LEVELS.md` | The 12 level slots — including one that loads a Jet Moto course under a name for a level that was never built |
 | `docs/RAM_MAP.md` | Player and enemy structures, the game-setup block, the pad word, and errors found in the source cheat list |
 | `docs/DEBUG_MENU.md` | The mod, the GUI, the control protocol, and open problems |
+| `docs/PROTOTYPE.md` | The Aug 1996 prototype: the two cheat modes cut before release, and why |
 | `docs/ROADMAP.md` | Current status and what is next |
 | `CLAUDE.md` | Working notes and build environment quirks |
 
