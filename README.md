@@ -121,8 +121,8 @@ remembered. To skip the launcher and point it straight at a disc:
 build/TwistedMetal2_Recompiled.exe --no-launcher --disc "/path/to/game.cue"
 ```
 
-`game.toml` carries a `disc = ...` path that is specific to whoever built it
-last; the launcher or `--disc` overrides it.
+No disc path is committed, so a fresh clone prompts you for the disc (and,
+if you want one, a BIOS) on first launch. The launcher remembers the choice.
 
 ---
 

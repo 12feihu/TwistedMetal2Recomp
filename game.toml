@@ -6,7 +6,11 @@ name = "TwistedMetal2"
 id = "SCUS-94306"
 players = 2
 exe = "disc/SCUS_943.06"
-disc = "D:\\ClaudeProjects\\TWISTE~1\\GAME(P~1\\TWISTE~1\\TWISTE~1.CUE"
+# No disc path is committed. Leaving this unset makes the launcher prompt
+# for the disc on first run, which is what a fresh clone should do -- and
+# it keeps the builder's own directory layout out of the repository.
+# The launcher remembers your choice; --disc <path> also overrides it.
+# disc = "/path/to/Twisted Metal 2 (USA).cue"
 load_address = "0x800CDC54"
 entry_pc = "0x8013878C"
 text_size = "0x000B3800"
