@@ -234,3 +234,58 @@ before release.
 For comparison, every other car's `.TMS` is **byte-identical** between builds
 except Minion, whose textures nearly halved (41,812 → 22,432). The `.DMD`
 models see small revisions across most of the roster.
+
+## Are there undocumented cheats in retail?
+
+Checked against the community list at
+`twistedmetal.fandom.com/wiki/Twisted_Metal_2_Cheats`, which documents six
+in-game cheats (God Mode, Homing Napalm, Invincibility, Unlimited Ammo, Mega
+Guns, Wheels of Death), eleven Advanced Attacks, two character unlocks, and
+three secret-level codes.
+
+### The combo system
+
+One function, `func_80150CFC(id, player)`, answers "was combo *id* just
+entered". It is called with **27 distinct ids**, but they are not all cheats:
+
+| Caller | Ids | What it is |
+|---|---|---|
+| `func_80123430` | 1,2,3,6,8,10–17,20,21 | Advanced Attacks / HUD inputs |
+| `func_800DE5F8` | 8,9,49,57–60 | special-move poller; results stored to player struct `+212`…`+230` |
+| `func_800DECA8` | 22,23,24,26,27,30,31,32,33 | **the cheat handler** |
+
+So the cheat handler uses nine combos, and there is **no reserve pool of
+unused cheat combos** hiding in the checker.
+
+### No hidden character codes
+
+`func_80130DD0` builds the secret-character toggles and makes exactly **two**
+calls, one per unlock byte — `0x80180D04` (Sweet Tooth) and `0x80180D05`
+(Minion). There is no third byte and no third call. Dark Tooth has no unlock
+of any kind, which matches it having no select-screen plate and no info
+screen (`docs/CARS.md`).
+
+### One message nobody documents
+
+The retail HUD table holds 15 cheat/bonus/status messages. Every one maps to
+something the wiki lists — except:
+
+> **`Shoot 'em Lose 'em`** — message id 30
+
+It is **not** in the prototype's table, so it was added for release. Unlike
+`God Mode`, `Mega Guns`, `Homing Napalm`, `Infinite Weapons`, `Sell Your Soul`
+and the bonuses, no post site with a constant id could be found for it.
+
+Three post sites compute their message id at runtime (`func_800E5628`,
+`func_800F8370`, `func_800FD550`) — those cover the "… Loaded" pickup messages
+and the on/off variants — so a computed post for this one cannot be excluded.
+**What is established is that it exists in retail, is absent from the
+prototype, and has no direct post site.** Whether it is reachable is open.
+
+The name suggests a mode where firing a weapon loses it, or where shooting an
+opponent strips theirs.
+
+Also worth noting: `Wheels of Death`, which the wiki *does* document, has **no
+message string at all** — consistent with it being an Axel-only handling
+change that announces nothing. And `Secret Combo` is a generic
+"you-entered-something" message rather than a named cheat.
