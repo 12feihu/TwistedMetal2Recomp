@@ -184,6 +184,57 @@ def load_params(path):
     return out
 
 
+def load_extras(path, word_at):
+    """Read project-supplied codes that are not in the GameShark list.
+
+    The main list is regenerated wholesale from the source .txt, so anything
+    contributed or discovered here would be lost on the next import. These are
+    kept separately and merged, in the same shape the generated file uses.
+    """
+    if not path or not os.path.isfile(path):
+        return [], []
+    try:
+        import tomllib as toml_mod
+    except ImportError:
+        import tomli as toml_mod
+    data = toml_mod.loads(open(path, "rb").read().decode("utf-8"))
+
+    out, problems = [], []
+    for entry in data.get("cheat", []):
+        cid = entry.get("id")
+        name = entry.get("name", cid)
+        if not cid:
+            problems.append("extras: a [[cheat]] has no id; skipped")
+            continue
+        ops = []
+        for op in entry.get("op", []):
+            kind = op.get("kind")
+            addr = int(op.get("addr", 0))
+            value = int(op.get("value", 0))
+            if kind not in ("write8", "write16", "if_eq16"):
+                problems.append("extras[%s]: bad kind %r" % (cid, kind))
+                continue
+            reg = region_of(addr)
+            if reg == "invalid":
+                problems.append("extras[%s]: %08X is outside the PS1's 2 MB of RAM"
+                                % (cid, addr))
+                continue
+            o = {"kind": kind, "addr": addr, "value": value, "region": reg}
+            if reg == "image" and kind == "write16":
+                wa = addr & ~3
+                cur = word_at(wa)
+                if cur is not None:
+                    o["word_addr"] = wa
+                    o["orig_word"] = cur
+            ops.append(o)
+        if not ops:
+            problems.append("extras[%s]: no usable ops; skipped" % cid)
+            continue
+        out.append({"id": cid, "name": name,
+                    "category": entry.get("category", "Misc"), "ops": ops})
+    return out, problems
+
+
 C_KIND = {"write8": "TM2_OP_WRITE8", "write16": "TM2_OP_WRITE16",
           "if_eq16": "TM2_OP_IF_EQ16"}
 C_REGION = {"low": "TM2_REGION_LOW", "image": "TM2_REGION_IMAGE",
@@ -230,6 +281,13 @@ def emit_c(path, cheats, source_name, params):
                 "     * because unlike a RAM write the game will never overwrite\n"
                 "     * an instruction itself. Zero for non-image ops. */\n"
                 "    uint32_t orig_word;\n"
+                "    /* 1 only when this write changes an instruction's OPCODE\n"
+                "     * field, decoded from the stock EXE. The image region holds\n"
+                "     * initialised data as well as code, so the region alone\n"
+                "     * cannot tell them apart -- and treating data as code would\n"
+                "     * route it through the executable-RAM path and, worse,\n"
+                "     * restore boot-time bytes over live game state on disable. */\n"
+                "    uint8_t  is_code;\n"
                 "} Tm2CheatOp;\n\n")
         f.write("enum { TM2_PARAM_NONE = 0, TM2_PARAM_RANGE = 1,"
                 " TM2_PARAM_CHOICE = 2 };\n\n")
@@ -255,9 +313,13 @@ def emit_c(path, cheats, source_name, params):
 
         f.write("static const Tm2CheatOp tm2_cheat_ops[] = {\n")
         for op in ops:
-            f.write("    { 0x%08Xu, 0x%04Xu, %s, %s, 0x%08Xu },\n"
+            f.write("    { 0x%08Xu, 0x%04Xu, %s, %s, 0x%08Xu, %d },\n"
                     % (op["addr"], op["value"], C_KIND[op["kind"]],
-                       C_REGION[op["region"]], op.get("orig_word", 0)))
+                       C_REGION[op["region"]], op.get("orig_word", 0),
+                       # An all-zero stock word decodes as `nop`, but is just
+                       # as likely a zero-initialised data word, so require a
+                       # non-zero original before calling it code.
+                       1 if ("patch_was" in op and op.get("orig_word")) else 0))
         f.write("};\n\n")
 
         # Choice label pool, shared by every cheat that uses the same list.
@@ -315,6 +377,8 @@ def main():
     ap.add_argument("-o", "--out", required=True, help="output .toml")
     ap.add_argument("--emit-c", metavar="HEADER",
                     help="also write a compiled-in C table for src/mods/")
+    ap.add_argument("--extra", default="mods/tm2-debug/extra.toml",
+                    help="project-supplied codes merged into the table")
     ap.add_argument("--params", default="mods/tm2-debug/params.toml",
                     help="value-selector declarations for modifier cheats")
     ap.add_argument("--exe", default="disc/SCUS_943.06",
@@ -397,6 +461,17 @@ def main():
             continue
         out.append({"id": cid, "name": name,
                     "category": categorise(name), "ops": ops})
+
+    extras, extra_problems = load_extras(args.extra, word_at)
+    out.extend(extras)
+    problems.extend(extra_problems)
+    for c in extras:
+        for op in c["ops"]:
+            stats[op["kind"]] += 1
+            stats["region:" + op["region"]] += 1
+    if extras:
+        print("merged %d project-supplied cheat(s) from %s"
+              % (len(extras), args.extra))
 
     with open(args.out, "w", encoding="utf-8", newline="\n") as f:
         f.write("# Generated by tools/gs_import.py from %s -- do not hand-edit.\n"

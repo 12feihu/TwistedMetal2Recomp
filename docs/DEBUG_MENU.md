@@ -304,3 +304,67 @@ Find it in **code** rather than RAM. The demo has to write the level index at
 the exact frame the demo starts; the PC at that moment leads back to the
 trigger and its comparison. That is a far more direct route than diffing 2 MB
 and hoping the representation matches a guess.
+
+## Delimiter codes, and what raising a limit costs
+
+`mods/tm2-debug/extra.toml` holds codes that are not in the imported list.
+The first three are **delimiters**: they raise the game's own "how many
+entries are selectable" counters rather than forcing a value into a slot.
+
+| Cheat | Effect |
+|---|---|
+| Player Car Selection Delimiter | car-select limit 14 -> 15, exposing Dark Tooth (`0x0E`) on the select screen |
+| CPU Car Selection Delimiter | enemy car-select limit -> 15 |
+| Level Selection Delimiter | level-select limit 8 -> 11 |
+
+This is a better mechanism than forcing an index: the menus stay coherent
+because the game still believes it is making a normal selection.
+
+**Two guards matter.** Two of the three carry an `if_eq16` before the write,
+so they only fire while the expected value is present. Since the engine
+re-applies every enabled cheat every VBlank, an unguarded limit write would
+keep hammering whatever screen happens to be loaded — that is what "acts weird
+if told to activate constantly" means. A guard makes the code self-limiting:
+it raises the cap once, then the test stops matching and the write stops.
+
+**Raising a limit exposes slots the game does not fully handle.** With the
+level delimiter on, the selection can reach slot `09`, which has a display
+name but no asset code at all (`docs/LEVELS.md`), and cycling past either end
+can index the game's jump table out of range. Observed once: cycling maps
+backward produced
+
+```
+FATAL: FAIL-FAST unknown dispatch: addr=0x003127AC ra=0x80151484
+```
+
+`0x801127AC` is not a missing function — it is the third instruction *inside*
+`func_801127A0`, which is emitted normally. Branching into the middle of a
+function at an arbitrary offset is what an out-of-range jump-table index looks
+like. The game went off the rails on its own; the runtime caught it at the
+first illegal dispatch rather than executing garbage.
+
+That failure mode is inherent to raising a selection limit past what the game
+was built for, not a defect in the cheat engine. It is also a good advert for
+doing this work on the recomp: hardware would have silently corrupted itself.
+
+## Code patches versus data in the EXE image
+
+The image region (`0x800CDC54`–`0x80181454`) holds **initialised data as well
+as code**, so "is it in the image?" cannot decide whether a write is patching
+an instruction. The importer decides it properly: an op is flagged `is_code`
+only when the write changes a decoded instruction's **opcode field** and the
+stock word is non-zero. Four ops qualify — the two FMV skips, Drive Through
+Walls, and Drive Anywhere.
+
+That flag, not the region, drives two behaviours:
+
+- **`psx_mod_write_code_word()`** — needed only for real instructions, so the
+  recompiled native code sees the change. Data takes an ordinary write.
+- **Restore on disable** — correct for an instruction, which nothing else ever
+  writes back. Wrong for data: restoring a boot-time word would stomp whatever
+  the game has legitimately put there since, such as an unlock the player
+  actually earned.
+
+An earlier version keyed both off the region and would have reverted the
+Sweet Tooth / Minion unlock bytes at `0x80180D04`-`05` to their boot values
+whenever the delimiter cheat was switched off.

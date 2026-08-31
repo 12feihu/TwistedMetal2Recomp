@@ -26,8 +26,10 @@
  *    is statically recompiled, so the native code for that address already
  *    exists and would never see the write. psx_mod_write_code_word() exists
  *    for exactly this: it replaces the instruction and routes the address
- *    through the runtime's executable-RAM path. Image-region ops therefore go
- *    through a read-modify-write of the containing word.
+ *    through the runtime's executable-RAM path, via a read-modify-write of the
+ *    containing word. Only ops the importer decoded as changing an
+ *    instruction's opcode field take that path -- the EXE image holds
+ *    initialised data too, and routing data through it would be wrong.
  *
  * 2. Everything is applied every VBlank, which is what a real GameShark does.
  *    A one-shot write would be undone by the game's own logic on the next
@@ -153,7 +155,7 @@ static const char *region_tag(uint8_t region)
 
 static void write_half(const Tm2CheatOp *op)
 {
-    if (op->region == TM2_REGION_IMAGE) {
+    if (op->is_code) {
         /* Recompiled code: patch the whole word through the executable-RAM
          * path so the native side actually changes. */
         uint32_t word_addr = op->addr & ~3u;
@@ -171,6 +173,11 @@ static void write_half(const Tm2CheatOp *op)
 /*
  * Undo a cheat's code patches.
  *
+ * Only ops flagged is_code are reverted. The image region holds initialised
+ * data as well as instructions, and restoring a boot-time data word would
+ * stomp whatever the game has legitimately put there since -- an unlock the
+ * player actually earned, say.
+ *
  * RAM writes need no undo -- the game overwrites those itself on the next
  * frame, which is exactly why they have to be re-applied every VBlank. An
  * instruction is different: nothing in the game ever writes it back, so
@@ -181,7 +188,7 @@ static void revert_cheat(const Tm2Cheat *c)
 {
     for (uint16_t i = 0; i < c->op_count; i++) {
         const Tm2CheatOp *op = &tm2_cheat_ops[c->first_op + i];
-        if (op->region != TM2_REGION_IMAGE || op->kind == TM2_OP_IF_EQ16)
+        if (!op->is_code || op->kind == TM2_OP_IF_EQ16)
             continue;
         uint32_t word_addr = op->addr & ~3u;
         if (psx_mod_read_word(word_addr) != op->orig_word)

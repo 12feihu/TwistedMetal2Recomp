@@ -1666,3 +1666,56 @@ category = "Misc"
   value = 0x0000
   region = "bss"
 
+[[cheat]]
+id = "player-car-delimiter"
+name = "Player Car Selection Delimiter"
+category = "Unlocks"
+
+  [[cheat.op]]
+  kind = "write8"
+  addr = 0x8003434A
+  value = 0x000F
+  region = "low"
+
+  [[cheat.op]]
+  kind = "write16"
+  addr = 0x80180D04
+  value = 0x0101
+  region = "image"
+  word_addr = 0x80180D04
+  orig_word = 0x00000000
+
+[[cheat]]
+id = "cpu-car-delimiter"
+name = "CPU Car Selection Delimiter"
+category = "Unlocks"
+
+  [[cheat.op]]
+  kind = "if_eq16"
+  addr = 0x80030765
+  value = 0x0C00
+  region = "low"
+
+  [[cheat.op]]
+  kind = "write8"
+  addr = 0x80030766
+  value = 0x000F
+  region = "low"
+
+[[cheat]]
+id = "level-delimiter"
+name = "Level Selection Delimiter"
+category = "Unlocks"
+
+  [[cheat.op]]
+  kind = "if_eq16"
+  addr = 0x8001A0A2
+  value = 0x0008
+  region = "low"
+
+  [[cheat.op]]
+  kind = "write8"
+  addr = 0x8001A0A2
+  value = 0x000B
+  region = "low"
+

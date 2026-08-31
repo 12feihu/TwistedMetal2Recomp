@@ -1,0 +1,91 @@
+# Codes that are not in the imported GameShark list.
+#
+# The main list comes from ../Cheats.txt and is regenerated wholesale, so
+# anything contributed or discovered by this project lives here instead and is
+# merged in by tools/gs_import.py. Same shape as the generated cheats.toml.
+#
+# `if_eq16` guards the single op that follows it, exactly like GameShark D0.
+# Prefer a guard for anything that raises a limit: the engine applies every
+# enabled cheat every VBlank, and a limit written unconditionally will fight
+# whatever screen is currently loaded. That is what "acts weird if told to
+# activate constantly" means in practice.
+
+# --- selection delimiters --------------------------------------------------
+# These raise the game's own "how many entries are selectable" counters rather
+# than forcing a value into a slot. That is why they behave better than the
+# forcing codes: the menus stay coherent because the game still believes it is
+# making a normal selection.
+#
+# Contributed via the project owner (originally from his brother).
+
+[[cheat]]
+id = "player-car-delimiter"
+name = "Player Car Selection Delimiter"
+category = "Unlocks"
+note = """
+Raises the player car-select limit from 14 to 15, which exposes index 0x0E
+(Dark Tooth) on the select screen instead of requiring the index to be forced.
+0x8003434A is the same address the list's 'Both Players Cars' cheat writes a
+car index to, so it is the count/limit for that screen.
+"""
+
+  [[cheat.op]]
+  kind = "write8"
+  addr = 0x8003434A
+  value = 0x000F
+
+  # The contributed code gave this address as 0x80780D04, which cannot be
+  # right: the PS1 has 2 MB of RAM and that offset is past 7 MB, so the write
+  # would be discarded. 0x80180D04 is almost certainly what was meant -- it is
+  # the Sweet Tooth unlock byte, with Minion at 0x80180D05, and a halfword
+  # 0x0101 sets both flags to 1 in a single write. Those two addresses were
+  # identified independently here (see docs/CARS.md), which is what makes the
+  # correction safe rather than a guess.
+  [[cheat.op]]
+  kind = "write16"
+  addr = 0x80180D04
+  value = 0x0101
+
+[[cheat]]
+id = "cpu-car-delimiter"
+name = "CPU Car Selection Delimiter"
+category = "Unlocks"
+note = """
+Raises the enemy car-select limit to 15, guarded so it only applies while the
+expected value is present. The guard is what keeps it stable.
+"""
+
+  [[cheat.op]]
+  kind = "if_eq16"
+  addr = 0x80030765
+  value = 0x0C00
+
+  [[cheat.op]]
+  kind = "write8"
+  addr = 0x80030766
+  value = 0x000F
+
+[[cheat]]
+id = "level-delimiter"
+name = "Level Selection Delimiter"
+category = "Unlocks"
+note = """
+Raises the level-select limit from 8 to 11, exposing the slots past the eight
+tournament levels.
+
+This also corrects a mislabel in the imported list: 0x8001A0A2 is called
+"Background Select" there, with a sample value of 8. It is not a background --
+8 is the number of selectable tournament levels, and this code raises it.
+See docs/LEVELS.md for what the extra slots actually contain (0x0A is a Jet
+Moto course, and 0x09 has no asset code at all).
+"""
+
+  [[cheat.op]]
+  kind = "if_eq16"
+  addr = 0x8001A0A2
+  value = 0x0008
+
+  [[cheat.op]]
+  kind = "write8"
+  addr = 0x8001A0A2
+  value = 0x000B
