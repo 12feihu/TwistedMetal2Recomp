@@ -199,6 +199,30 @@ Twisted Metal 2 is © Sony Computer Entertainment / SingleTrac. This project is
 unaffiliated with, and unendorsed by, either. It is a personal preservation and
 reverse-engineering exercise.
 
+### Licensing
+
+The code in this repository — `src/mods/`, `tools/`, the configuration and the
+documentation — is **MIT**.
+
+That does not make the whole thing MIT, because a build links against the
+framework:
+
+| Component | Licence |
+|---|---|
+| This repository's own code | MIT |
+| [`psxrecomp`](https://github.com/mstan/psxrecomp) — recompiler + runtime | **PolyForm Noncommercial 1.0.0** |
+| [`recomp-ui`](https://github.com/mstan/recomp-ui) — launcher | MIT |
+| OpenBIOS (bundled by the framework) | MIT |
+| Dear ImGui, SDL3 | MIT / zlib |
+
+PolyForm Noncommercial permits "any noncommercial purpose" — so anything you
+build from this repository is **for noncommercial use only**, regardless of
+the MIT licence on our own files. Do not read the MIT licence here as
+permission to use the resulting binary commercially.
+
+None of the above applies to the game itself, which is not licensed to anyone
+by this project.
+
 ---
 
 ## Credits
