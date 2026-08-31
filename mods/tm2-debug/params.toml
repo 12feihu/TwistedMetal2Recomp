@@ -88,13 +88,27 @@ default = 1
 # you can dial a number and watch what happens -- but the numbers are not
 # labelled, so treat anything you find here as unverified.
 
+# Difficulty has three settings, so 0/1/2 in order is the natural mapping.
+# INFERRED, not read out of the game.
+#
+# Supporting evidence: the executable carries a log string at 0x800CFE10,
+# "difficulty set to medium for this level", which fixes the middle label as
+# "medium" rather than "normal". Medium is also the game's default, which is
+# consistent with this ordering -- a default of 1 is the usual arrangement --
+# though it does not prove it.
+#
+# It cannot be confirmed statically. 0x8001A23F is in the streamed low region,
+# so it only means "difficulty" while the screen that owns it is loaded; at the
+# title screen the same bytes are palette data and pointers. Confirming the
+# order means reaching the Options screen and reading the byte while changing
+# the setting.
+
 [[param]]
 cheats = ["difficulty-modifier"]
-label = "Difficulty"
-type = "range"
-min = 0
-max = 255
+label = "Difficulty (order unconfirmed)"
+type = "choice"
 default = 0
+choices = ["0 Easy", "1 Medium", "2 Hard"]
 
 [[param]]
 cheats = ["map-modifier"]

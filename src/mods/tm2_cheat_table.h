@@ -236,6 +236,9 @@ static const char *const tm2_choice_names[] = {
     "0C Sweet Tooth",
     "0D Minion",
     "0E Dark Tooth (boss -- glitches periodically)",
+    "0 Easy",
+    "1 Medium",
+    "2 Hard",
 };
 
 static const Tm2Cheat tm2_cheats[] = {
@@ -269,7 +272,7 @@ static const Tm2Cheat tm2_cheats[] = {
     { "computer-7-car-modifier", "Computer 7 Car Modifier", "Enemies", 44, 1, TM2_REGION_IMAGE, TM2_PARAM_CHOICE, "Car", 0, 14, 0, 0, 12, 15 },
     { "computer-8-car-modifier", "Computer 8 Car Modifier", "Enemies", 45, 1, TM2_REGION_IMAGE, TM2_PARAM_CHOICE, "Car", 0, 14, 0, 0, 12, 15 },
     { "computer-9-car-modifier", "Computer 9 Car Modifier", "Enemies", 46, 1, TM2_REGION_IMAGE, TM2_PARAM_CHOICE, "Car", 0, 14, 0, 0, 12, 15 },
-    { "difficulty-modifier", "Difficulty Modifier", "Setup", 47, 1, TM2_REGION_LOW, TM2_PARAM_RANGE, "Difficulty", 0, 255, 0, 0, 0, 0 },
+    { "difficulty-modifier", "Difficulty Modifier", "Setup", 47, 1, TM2_REGION_LOW, TM2_PARAM_CHOICE, "Difficulty (order unconfirmed)", 0, 2, 0, 0, 27, 3 },
     { "disable-rearview-mirror", "Disable Rearview Mirror", "Misc", 48, 1, TM2_REGION_IMAGE, TM2_PARAM_NONE, 0, 0, 0, 0, 0, 0, 0 },
     { "disable-weapons-p1-except-gun", "Disable Weapons P1 (Except Gun)", "Player 1", 49, 1, TM2_REGION_BSS, TM2_PARAM_NONE, 0, 0, 0, 0, 0, 0, 0 },
     { "disable-weapons-p2-except-gun", "Disable Weapons P2 (Except Gun)", "Player 2", 50, 1, TM2_REGION_BSS, TM2_PARAM_NONE, 0, 0, 0, 0, 0, 0, 0 },

@@ -241,3 +241,66 @@ does not respond, suspect SDL keyboard focus before the plugin.
   deliberately deferred to keep the framework unforked.
 - Promoting verified cheats into named functions in `symbols.toml` as the RAM
   map firms up (see `docs/RAM_MAP.md`).
+
+## Open: disabling the attract demo
+
+The attract demo starts from **any** menu after a period with no input, which
+makes unattended menu work (reaching the Options screen, driving to a match,
+verifying a low-region cheat) unreliable. A "freeze attract timer" toggle is
+wanted.
+
+**Not found yet.** The timer has resisted the obvious RAM-diff approaches.
+Recorded so the same ground is not covered twice.
+
+### What works today
+
+Input injection through the debug server **does** reach the game — the pad
+override lands in the BIOS `InitPAD` buffer, so the menus respond. Nudging a
+direction every ~1.5 s holds any menu open indefinitely, which is a usable
+workaround right now:
+
+```python
+dbg(cmd="set_input", buttons=0xFFDF)   # Right
+time.sleep(0.25)
+dbg(cmd="clear_input")
+```
+
+That is how the ONE PLAYER submenu was reached and held.
+
+### What has been ruled out
+
+Scans covered `0x80000000`–`0x801E0000` (the stack region excluded after it
+produced false positives), sampling with a nudge first to establish a known
+baseline:
+
+| Hypothesis | Result |
+|---|---|
+| Counter rising while idle, reset by input | nothing |
+| Counter falling while idle, reset by input | nothing |
+| Value constant while idle, jumping to the frame counter on input (a "last input at" timestamp) | nothing |
+| Byte counter ticking ~1/s, reset by input | one candidate, disproved |
+
+Two false leads worth naming:
+
+- `0x801FE604` looked ideal — a steady countdown that jumped back up after
+  input — but it is **stack**, and reads 0 when probed directly. Exclude the
+  top of RAM from this kind of search.
+- `0x801A5878` is a 0→15 sawtooth cycling every ~7 s. An animation counter.
+
+### Useful byproducts
+
+Free-running frame counters, confirmed not to reset on input:
+
+```
+0x8017C434   0x8017CFD8   0x8017E098   0x8017EBFC   0x8017EC06
+```
+
+`0x8017EC06` is also the address the list's "Turbo Mode" cheat writes.
+
+### What to try next
+
+Find it in **code** rather than RAM. The demo has to write the level index at
+`0x80164774` when it arms itself, so a `watch` on that address should fire on
+the exact frame the demo starts; the PC at that moment leads back to the
+trigger and its comparison. That is a far more direct route than diffing 2 MB
+and hoping the representation matches a guess.
